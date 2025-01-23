@@ -7,7 +7,7 @@ import theme from './theme';
 import App from './App';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
-import ChatPage from './components/Chat';
+import ChatPage from './pages/ChatPage';
 import { SidebarProvider } from './contexts/SidebarContext';
 
 // This is a placeholder. In a real app, you'd implement proper authentication

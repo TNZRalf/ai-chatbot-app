@@ -1,19 +1,21 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
+
+  // Configure axios to include credentials
+  axios.defaults.withCredentials = true;
 
   useEffect(() => {
     checkAuth();
@@ -21,74 +23,79 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_SERVER_URL}/auth/me`, {
-        withCredentials: true
-      });
+      const response = await axios.get(`${serverUrl}/auth/me`);
       setUser(response.data.user);
-    } catch (error) {
+    } catch (err) {
       setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const signup = async (formData) => {
+  const login = async (email, password) => {
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_SERVER_URL}/auth/signup`,
-        formData,
-        { withCredentials: true }
-      );
+      setError(null);
+      const response = await axios.post(`${serverUrl}/auth/login`, {
+        email,
+        password
+      });
       setUser(response.data.user);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to create account'
-      };
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data?.error || 'An error occurred during login');
+      throw err;
     }
   };
 
-  const login = async (email, password) => {
+  const signup = async (username, email, password) => {
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_SERVER_URL}/auth/login`,
-        { email, password },
-        { withCredentials: true }
-      );
+      setError(null);
+      const response = await axios.post(`${serverUrl}/auth/signup`, {
+        username,
+        email,
+        password
+      });
       setUser(response.data.user);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Invalid credentials'
-      };
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data?.error || 'An error occurred during signup');
+      throw err;
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post(
-        `${process.env.REACT_APP_SERVER_URL}/auth/logout`,
-        {},
-        { withCredentials: true }
-      );
+      await axios.post(`${serverUrl}/auth/logout`);
       setUser(null);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to logout'
-      };
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  const updateUser = async (formData) => {
+    try {
+      setError(null);
+      const response = await axios.put(`${serverUrl}/auth/profile`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setUser(response.data.user);
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data?.error || 'An error occurred while updating profile');
+      throw err;
     }
   };
 
   const value = {
     user,
     loading,
-    signup,
+    error,
     login,
-    logout
+    signup,
+    logout,
+    updateUser
   };
 
   return (
@@ -97,3 +104,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;

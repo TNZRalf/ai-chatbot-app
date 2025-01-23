@@ -3,9 +3,11 @@ import { Box, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import './animations.css';
 import { SidebarContext } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Logo = () => {
   const context = useContext(SidebarContext);
+  const { isDarkMode } = useTheme();
   
   if (!context) {
     console.warn('Logo used outside of SidebarProvider');
@@ -32,11 +34,12 @@ const Logo = () => {
       >
         <Box
           component="img"
-          src="/occ-logo.svg"
+          src={isDarkMode ? "/occ-logo-white.svg" : "/occ-logo.svg"}
           alt="OCC Logo"
           sx={{
             width: 28,
             height: 28,
+            filter: isDarkMode ? 'invert(1)' : 'none',
           }}
         />
         <Typography
@@ -45,7 +48,7 @@ const Logo = () => {
             fontWeight: 800,
             letterSpacing: '0.02em',
             fontFamily: '"Telegraf", "Helvetica", "Arial", sans-serif',
-            color: '#000',
+            color: isDarkMode ? '#fff' : '#000',
           }}
         >
           OCC
@@ -81,11 +84,12 @@ const Logo = () => {
     >
       <Box
         component="img"
-        src="/occ-logo.svg"
+        src={isDarkMode ? "/occ-logo-white.svg" : "/occ-logo.svg"}
         alt="OCC Logo"
         sx={{
           width: 28,
           height: 28,
+          filter: isDarkMode ? 'invert(1)' : 'none',
         }}
       />
       <Typography
@@ -94,7 +98,7 @@ const Logo = () => {
           fontWeight: 800,
           letterSpacing: '0.02em',
           fontFamily: '"Telegraf", "Helvetica", "Arial", sans-serif',
-          color: '#000',
+          color: isDarkMode ? '#fff' : '#000',
         }}
       >
         OCC

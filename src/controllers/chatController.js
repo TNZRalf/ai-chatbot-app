@@ -1,8 +1,4 @@
-const { OpenAI } = require('openai');
 const { User } = require('../models/User');
-
-// Initialize OpenAI
-const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
 // Store chat histories in memory (in production, this should be in a database)
 const chatHistories = new Map();
@@ -23,77 +19,47 @@ const chatController = {
       // Add user's message to history
       history.push({ role: 'user', content: message });
 
-      // Get AI response
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: "You are a helpful AI assistant." },
-          ...history
-        ],
-        max_tokens: 150
-      });
+      // Add mock AI response
+      const mockResponse = "This is a mock response. OpenAI integration will be added later.";
+      history.push({ role: 'assistant', content: mockResponse });
 
-      const aiResponse = completion.choices[0].message.content;
-
-      // Add AI's response to history
-      history.push({ role: 'assistant', content: aiResponse });
-
-      // Keep only last 10 messages to manage memory
-      if (history.length > 10) {
-        chatHistories.set(userId, history.slice(-10));
+      // Keep only last 10 messages
+      if (history.length > 20) {
+        history.splice(0, 2); // Remove oldest message pair
       }
 
       res.json({
-        success: true,
-        message: aiResponse
+        message: mockResponse,
+        history: history
       });
 
     } catch (error) {
-      console.error('Chat error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get AI response'
-      });
+      console.error('Error in sendMessage:', error);
+      res.status(500).json({ error: 'Failed to process message' });
     }
   },
 
   // Get chat history for a user
   async getChatHistory(req, res) {
     try {
-      const userId = req.user.id; // From auth middleware
+      const userId = req.user.id;
       const history = chatHistories.get(userId) || [];
-
-      res.json({
-        success: true,
-        history
-      });
-
+      res.json({ history });
     } catch (error) {
-      console.error('Get history error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get chat history'
-      });
+      console.error('Error in getChatHistory:', error);
+      res.status(500).json({ error: 'Failed to get chat history' });
     }
   },
 
   // Clear chat history for a user
   async clearHistory(req, res) {
     try {
-      const userId = req.user.id; // From auth middleware
-      chatHistories.delete(userId);
-
-      res.json({
-        success: true,
-        message: 'Chat history cleared'
-      });
-
+      const userId = req.user.id;
+      chatHistories.set(userId, []);
+      res.json({ message: 'Chat history cleared' });
     } catch (error) {
-      console.error('Clear history error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to clear chat history'
-      });
+      console.error('Error in clearHistory:', error);
+      res.status(500).json({ error: 'Failed to clear chat history' });
     }
   }
 };

@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const { sequelize } = require('../config/database');
+const { sequelize } = require('../config/db.config');
 
 const User = sequelize.define('User', {
   id: {
@@ -33,6 +33,10 @@ const User = sequelize.define('User', {
       len: [6, 100],
       notEmpty: true
     }
+  },
+  avatarUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   timestamps: true,
@@ -54,22 +58,18 @@ const User = sequelize.define('User', {
 
 // Instance method to check password
 User.prototype.validatePassword = async function(password) {
-  return await bcrypt.compare(password, this.password);
-};
-
-// Static method to find user by email
-User.findByEmail = async function(email) {
-  return await this.findOne({ where: { email } });
+  return bcrypt.compare(password, this.password);
 };
 
 // Initialize User model and create table if it doesn't exist
 const initializeUserModel = async () => {
   try {
-    await User.sync();
-    console.log('User model synchronized successfully');
+    await sequelize.sync({ alter: true }); // This will update the table structure
+    console.log('✅ User model initialized successfully');
+    return true;
   } catch (error) {
-    console.error('Error synchronizing User model:', error);
-    throw error;
+    console.error('❌ Error initializing User model:', error);
+    return false;
   }
 };
 

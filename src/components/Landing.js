@@ -1,18 +1,46 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Box, Container, Typography, Button, TextField, IconButton } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowForward as ArrowForwardIcon, AttachFile as AttachFileIcon } from '@mui/icons-material';
+import { ArrowForward as ArrowForwardIcon, AttachFile as AttachFileIcon, Close as CloseIcon } from '@mui/icons-material';
 import Logo from './Logo';
 import Sidebar from './Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { Paperclip } from './Paperclip';
+import SendIcon from '@mui/icons-material/Send';
 
 const Landing = () => {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState(null);
   const fileInputRef = useRef(null);
+  const previewRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Cleanup preview URL when attachment changes
+  useEffect(() => {
+    if (attachment && attachment.type.startsWith('image/')) {
+      const url = URL.createObjectURL(attachment);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    return () => setPreviewUrl(null);
+  }, [attachment]);
+
+  // Handle resize with debounce
+  useEffect(() => {
+    if (!previewRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      // Use requestAnimationFrame to avoid ResizeObserver loop limit exceeded
+      window.requestAnimationFrame(() => {
+        if (!Array.isArray(entries) || !entries.length) return;
+      });
+    });
+
+    resizeObserver.observe(previewRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -37,11 +65,15 @@ const Landing = () => {
     }
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
     if (file) {
       setAttachment(file);
     }
+  }, []);
+
+  const handleSendMessage = (message) => {
+    // Add your logic to handle sending the message
   };
 
   return (
@@ -186,65 +218,121 @@ const Landing = () => {
           >
             {attachment && (
               <Box
+                ref={previewRef}
                 className="slide-in-top"
                 sx={{
                   mb: 1.5,
                   p: 1.5,
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                  borderRadius: 1,
+                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                  borderRadius: 2,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  maxWidth: 800,
+                  mx: 'auto',
+                  width: '100%',
+                  transition: 'all 0.2s ease-in-out',
+                  willChange: 'transform',
                   '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.06)',
-                    border: '1px solid rgba(0, 0, 0, 0.15)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                   },
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden' }}>
                   {attachment.type.startsWith('image/') ? (
                     <Box
-                      component="img"
-                      src={URL.createObjectURL(attachment)}
-                      alt={attachment.name}
                       sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        objectFit: 'cover',
-                        transition: 'transform 0.2s ease-in-out',
-                        '&:hover': {
-                          transform: 'scale(1.05)',
-                        },
+                        width: 48,
+                        height: 48,
+                        borderRadius: 1.5,
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(4px)',
+                        willChange: 'transform',
                       }}
-                    />
+                    >
+                      {previewUrl && (
+                        <img
+                          src={previewUrl}
+                          alt={attachment.name}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          loading="lazy"
+                        />
+                      )}
+                    </Box>
                   ) : (
-                    <AttachFileIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 1.5,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      <AttachFileIcon sx={{ fontSize: 24, color: 'rgba(0, 0, 0, 0.4)' }} />
+                    </Box>
                   )}
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {attachment.name}
-                  </Typography>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'rgba(0, 0, 0, 0.7)',
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {attachment.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'rgba(0, 0, 0, 0.5)',
+                        display: 'block',
+                      }}
+                    >
+                      {(attachment.size / 1024).toFixed(1)} KB
+                    </Typography>
+                  </Box>
                 </Box>
                 <IconButton
                   size="small"
                   onClick={() => setAttachment(null)}
                   sx={{
-                    color: 'text.secondary',
-                    transition: 'all 0.2s ease-in-out',
+                    color: 'rgba(0, 0, 0, 0.4)',
+                    backdropFilter: 'blur(4px)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    width: 28,
+                    height: 28,
                     '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      color: 'text.primary',
+                      color: 'rgba(255, 59, 48, 0.8)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
                     },
                   }}
                 >
-                  ×
+                  <CloseIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </Box>
             )}
-            <Box sx={{ position: 'relative' }}>
+            <Box sx={{ position: 'relative', width: '100%', maxWidth: 800, mx: 'auto' }}>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -263,6 +351,7 @@ const Landing = () => {
                 maxRows={4}
                 sx={{
                   '& .MuiOutlinedInput-root': {
+                    pr: '96px', // Space for icons
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                     borderRadius: 2,
@@ -297,6 +386,8 @@ const Landing = () => {
                   transform: 'translateY(-50%)',
                   display: 'flex',
                   gap: 1,
+                  zIndex: 1,
+                  backgroundColor: 'transparent',
                 }}
               >
                 <Box
@@ -310,9 +401,11 @@ const Landing = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(4px)',
                     '&:hover': {
                       color: 'primary.main',
-                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     },
                   }}
                 >

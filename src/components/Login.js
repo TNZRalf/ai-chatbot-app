@@ -21,43 +21,24 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Logo from './Logo';
 
-const SignUp = () => {
+const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const { signup, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { login, loginWithGoogle, loginWithFacebook } = useAuth();
   const { isDarkMode } = useTheme();
-
-  const validatePassword = () => {
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-    return true;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (!validatePassword()) return;
-
     try {
-      await signup(email, password, username);
+      await login(email, password);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
     } catch (err) {
@@ -65,31 +46,12 @@ const SignUp = () => {
     }
   };
 
-  const handleFacebookSignup = async () => {
+  const handleFacebookLogin = async () => {
     try {
       await loginWithFacebook();
     } catch (err) {
       setError(err.message);
     }
-  };
-
-  const textFieldStyles = {
-    mb: 2,
-    '& .MuiOutlinedInput-root': {
-      backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
-      '& fieldset': {
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-      },
-      '&:hover fieldset': {
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
-      },
-    },
-    '& .MuiInputLabel-root': {
-      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-    },
-    '& .MuiInputBase-input': {
-      color: isDarkMode ? '#fff' : '#000',
-    },
   };
 
   return (
@@ -132,7 +94,7 @@ const SignUp = () => {
             mb: 4,
           }}
         >
-          Create Account
+          Welcome Back
         </Typography>
 
         {error && (
@@ -144,21 +106,29 @@ const SignUp = () => {
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            sx={textFieldStyles}
-          />
-
-          <TextField
-            fullWidth
             label="Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            sx={textFieldStyles}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
+                '& fieldset': {
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                },
+                '&:hover fieldset': {
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                },
+              },
+              '& .MuiInputLabel-root': {
+                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+              },
+              '& .MuiInputBase-input': {
+                color: isDarkMode ? '#fff' : '#000',
+              },
+            }}
           />
 
           <TextField
@@ -181,30 +151,24 @@ const SignUp = () => {
                 </InputAdornment>
               ),
             }}
-            sx={textFieldStyles}
-          />
-
-          <TextField
-            fullWidth
-            label="Confirm Password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    edge="end"
-                    sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' }}
-                  >
-                    {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
+                '& fieldset': {
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                },
+                '&:hover fieldset': {
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                },
+              },
+              '& .MuiInputLabel-root': {
+                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+              },
+              '& .MuiInputBase-input': {
+                color: isDarkMode ? '#fff' : '#000',
+              },
             }}
-            sx={{ ...textFieldStyles, mb: 3 }}
           />
 
           <Button
@@ -221,7 +185,7 @@ const SignUp = () => {
               },
             }}
           >
-            Sign Up
+            Login
           </Button>
         </form>
 
@@ -247,7 +211,7 @@ const SignUp = () => {
           <Button
             fullWidth
             variant="outlined"
-            onClick={handleGoogleSignup}
+            onClick={handleGoogleLogin}
             startIcon={<GoogleIcon />}
             sx={{
               py: 1.5,
@@ -264,7 +228,7 @@ const SignUp = () => {
           <Button
             fullWidth
             variant="outlined"
-            onClick={handleFacebookSignup}
+            onClick={handleFacebookLogin}
             startIcon={<FacebookIcon />}
             sx={{
               py: 1.5,
@@ -287,15 +251,15 @@ const SignUp = () => {
             color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' 
           }}
         >
-          Already have an account?{' '}
+          Don't have an account?{' '}
           <Link
-            to="/login"
+            to="/signup"
             style={{
               color: isDarkMode ? '#90caf9' : '#1976d2',
               textDecoration: 'none',
             }}
           >
-            Log in
+            Sign up
           </Link>
         </Typography>
       </Paper>
@@ -303,4 +267,4 @@ const SignUp = () => {
   );
 };
 
-export default SignUp;
+export default Login;

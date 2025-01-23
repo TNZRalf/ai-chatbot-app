@@ -8,6 +8,23 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 
+// Suppress ResizeObserver errors
+const suppressResizeObserverErrors = () => {
+  const resizeObserverError = console.error;
+  console.error = (...args) => {
+    if (
+      args.length > 1 &&
+      typeof args[0] === 'string' &&
+      args[0].includes('ResizeObserver loop completed with undelivered notifications')
+    ) {
+      return;
+    }
+    resizeObserverError.apply(console, args);
+  };
+};
+
+suppressResizeObserverErrors();
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

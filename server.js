@@ -1,11 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const authRoutes = require('./src/routes/auth.routes');
-const chatRoutes = require('./src/routes/chat.routes');
-const { initializeDatabase } = require('./src/config/database');
+const path = require('path');
+const { testConnection } = require('./src/config/db.config');
 const { initializeUserModel } = require('./src/models/User');
-const { initializeSessionModel } = require('./src/models/Session');
+const authRoutes = require('./src/routes/auth.routes');
 require('dotenv').config();
 
 const app = express();
@@ -20,9 +19,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Routes
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// API Routes
 app.use('/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Serve static files from the React app
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'build')));
+
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
+}
 
 // Basic error handling
 app.use((err, req, res, next) => {
@@ -30,52 +46,28 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something broke!' });
 });
 
-// Function to find an available port
-const findAvailablePort = async (startPort) => {
-  const net = require('net');
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.unref();
-    server.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        resolve(findAvailablePort(startPort + 1));
-      } else {
-        reject(err);
-      }
-    });
-    server.listen(startPort, () => {
-      server.close(() => {
-        resolve(startPort);
-      });
-    });
-  });
-};
-
-// Database sync and server start
+// Start server
 const startServer = async () => {
   try {
-    // Initialize database and models
-    console.log('Initializing database...');
-    await initializeDatabase();
-    
-    console.log('Initializing models...');
-    await Promise.all([
-      initializeUserModel(),
-      initializeSessionModel()
-    ]);
-    
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      throw new Error('Database connection failed');
+    }
+
+    // Initialize models
+    const modelsInitialized = await initializeUserModel();
+    if (!modelsInitialized) {
+      throw new Error('Failed to initialize models');
+    }
+
     // Start server
-    console.log('Starting server...');
-    const availablePort = await findAvailablePort(PORT);
-    app.listen(availablePort, () => {
-      console.log(`Server running on port ${availablePort}`);
-      if (availablePort !== PORT) {
-        console.log(`Note: Server is using port ${availablePort} instead of ${PORT}`);
-        console.log(`Please update your client's REACT_APP_SERVER_URL to use port ${availablePort}`);
-      }
+    app.listen(PORT, () => {
+      console.log(`✅ Server is running on port ${PORT}`);
+      console.log(`🌐 Client URL: ${process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000'}`);
     });
   } catch (error) {
-    console.error('Unable to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
