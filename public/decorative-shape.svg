@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="600" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M300 150 
+           C380 150, 420 180, 420 220
+           C420 260, 380 300, 460 340
+           C540 380, 460 420, 380 440
+           C300 460, 260 420, 220 380
+           C180 340, 140 300, 180 260
+           C220 220, 220 150, 300 150" 
+        fill="url(#gradient)" />
+  <defs>
+    <linearGradient id="gradient" x1="150" y1="150" x2="500" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFB17A"/>
+      <stop offset="50%" stop-color="#FF9B8A"/>
+      <stop offset="100%" stop-color="#FF7A9C"/>
+    </linearGradient>
+  </defs>
+</svg>
