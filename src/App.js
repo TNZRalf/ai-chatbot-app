@@ -1,8 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Box } from '@mui/material';
 import Landing from './components/Landing';
-import Login from './components/Login';
+import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
 import Home from './components/Home';
 import ChatPage from './pages/ChatPage';
@@ -29,59 +29,67 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <CssBaseline />
-        <SidebarProvider>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <PublicRoute>
-                  <Landing />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <SignUp />
-                </PublicRoute>
-              }
-            />
-            <Route path="/signin" element={<Navigate to="/login" replace />} />
-            <Route
-              path="/home"
-              element={
-                <AuthenticatedRoute>
-                  <Home />
-                </AuthenticatedRoute>
-              }
-            />
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <ChatPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/interface"
-              element={
-                <ProtectedRoute>
-                  <InterfaceSettings />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </SidebarProvider>
+        <Box
+          sx={{
+            bgcolor: 'background.default',
+            minHeight: '100vh',
+            width: '100%',
+          }}
+        >
+          <SidebarProvider>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <PublicRoute>
+                    <Landing />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <SignIn />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicRoute>
+                    <SignUp />
+                  </PublicRoute>
+                }
+              />
+              <Route path="/signin" element={<Navigate to="/login" replace />} />
+              <Route
+                path="/home"
+                element={
+                  <AuthenticatedRoute>
+                    <Home />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/interface"
+                element={
+                  <ProtectedRoute>
+                    <InterfaceSettings />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </SidebarProvider>
+        </Box>
       </ThemeProvider>
     </AuthProvider>
   );

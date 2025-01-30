@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import {
   Box,
+  Container,
   Button,
   TextField,
   Typography,
-  Paper,
   IconButton,
   InputAdornment,
   Divider,
   Alert,
+  alpha,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
-  Google as GoogleIcon,
-  Facebook as FacebookIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -73,138 +72,279 @@ const SignUp = () => {
     }
   };
 
-  const textFieldStyles = {
-    mb: 2,
-    '& .MuiOutlinedInput-root': {
-      backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
-      '& fieldset': {
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-      },
-      '&:hover fieldset': {
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
-      },
-    },
-    '& .MuiInputLabel-root': {
-      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-    },
-    '& .MuiInputBase-input': {
-      color: isDarkMode ? '#fff' : '#000',
-    },
-  };
+  const GoogleIcon = () => (
+    <Box
+      component="img"
+      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+      alt="Google"
+      sx={{ width: 20, height: 20 }}
+    />
+  );
+
+  const FacebookIcon = () => (
+    <Box
+      component="img"
+      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
+      alt="Facebook"
+      sx={{ width: 20, height: 20 }}
+    />
+  );
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
+        background: 'background.default',
+        position: 'relative',
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: isDarkMode ? '#121212' : '#f8f9fa',
-        transition: 'all 0.3s ease',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'transparent',
+          backdropFilter: (theme) => theme.palette.mode === 'dark' ? 'brightness(0.8)' : 'none',
+          zIndex: 1,
+          transition: 'all 0.3s ease-in-out',
+        },
       }}
     >
-      <Paper
-        elevation={0}
+      {/* Decorative background shape */}
+      <Box
         sx={{
-          p: 4,
+          position: 'absolute',
           width: '100%',
-          maxWidth: 400,
-          mx: 2,
-          backgroundColor: isDarkMode ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid',
-          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-          borderRadius: 2,
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 0,
+          overflow: 'hidden',
+          '& img': {
+            width: 'clamp(1000px, 90%, 1400px)',
+            minWidth: '1000px',
+            height: 'auto',
+            objectFit: 'contain',
+            opacity: 1,
+            '@media (max-width: 852px)': {
+              minWidth: '900px',
+              transform: 'translateX(0)',
+            },
+            '@media (max-width: 441px)': {
+              minWidth: '800px',
+              transform: 'translateX(0)',
+            },
+          },
         }}
       >
-        <Box sx={{ mb: 3, textAlign: 'center' }}>
-          <Logo />
-        </Box>
+        <img src="/occ decoration home.png" alt="" />
+      </Box>
 
-        <Typography
-          variant="h4"
-          component="h1"
-          gutterBottom
+      {/* Logo at the top */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: { xs: 16, sm: 24 },
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 2,
+        }}
+      >
+        <Logo />
+      </Box>
+
+      <Container 
+        maxWidth="sm" 
+        sx={{ 
+          position: 'relative',
+          zIndex: 2,
+          py: { xs: 4, sm: 8 },
+          mt: { xs: 6, sm: 8 },
+          px: { xs: 2, sm: 3 },
+        }}
+      >
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
           sx={{
-            textAlign: 'center',
-            fontWeight: 600,
-            color: isDarkMode ? '#fff' : '#000',
-            mb: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            backgroundColor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
+            backdropFilter: 'blur(16px)',
+            borderRadius: 3,
+            p: { xs: 3, sm: 4 },
+            boxShadow: (theme) => `0 8px 32px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.08)}`,
+            width: '100%',
+            maxWidth: 'sm',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          Create Account
-        </Typography>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mb: 4,
+              fontFamily: '"Telegraf", "Helvetica", "Arial", sans-serif',
+              fontWeight: 500,
+              background: (theme) => `linear-gradient(90deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Create your account
+          </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                width: '100%', 
+                mb: 2,
+                borderRadius: 2,
+                '& .MuiAlert-icon': {
+                  color: 'error.main'
+                }
+              }}
+            >
+              {error}
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit}>
           <TextField
+            margin="dense"
+            required
             fullWidth
             label="Username"
+            name="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
-            sx={textFieldStyles}
+            sx={{
+              mb: 1,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              },
+            }}
           />
 
           <TextField
+            margin="dense"
+            required
             fullWidth
-            label="Email"
+            label="Email Address"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
-            sx={textFieldStyles}
+            sx={{
+              mb: 1,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              },
+            }}
           />
 
           <TextField
+            margin="dense"
+            required
             fullWidth
+            name="password"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
-                    sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' }}
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'primary.main',
+                      },
+                    }}
                   >
                     {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
                   </IconButton>
                 </InputAdornment>
               ),
             }}
-            sx={textFieldStyles}
+            sx={{
+              mb: 1,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              },
+            }}
           />
 
           <TextField
+            margin="dense"
+            required
             fullWidth
+            name="confirmPassword"
             label="Confirm Password"
             type={showConfirmPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            required
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     edge="end"
-                    sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' }}
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'primary.main',
+                      },
+                    }}
                   >
                     {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
                   </IconButton>
                 </InputAdornment>
               ),
             }}
-            sx={{ ...textFieldStyles, mb: 3 }}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              },
+            }}
           />
 
           <Button
@@ -212,93 +352,122 @@ const SignUp = () => {
             fullWidth
             variant="contained"
             sx={{
+              mt: 1,
               mb: 2,
               py: 1.5,
-              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-              color: isDarkMode ? '#000' : '#fff',
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 500,
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+              background: (theme) => `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              transition: 'all 0.2s ease-in-out',
               '&:hover': {
-                backgroundColor: isDarkMode ? '#82b7e3' : '#1565c0',
+                transform: 'translateY(-1px)',
+                boxShadow: (theme) => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
+              },
+              '&:active': {
+                transform: 'translateY(0)',
               },
             }}
           >
-            Sign Up
+            Create Account
           </Button>
-        </form>
 
-        <Box sx={{ my: 3 }}>
-          <Divider sx={{ 
-            '&::before, &::after': {
-              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-            }
-          }}>
+          <Divider 
+            sx={{ 
+              width: '100%', 
+              my: 2,
+              '&::before, &::after': {
+                borderColor: (theme) => alpha(theme.palette.divider, 0.1),
+              },
+            }}
+          >
             <Typography 
               variant="body2" 
               sx={{ 
-                px: 2, 
-                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' 
+                color: 'text.secondary',
+                px: 2,
+                fontSize: '0.875rem',
               }}
             >
               or continue with
             </Typography>
           </Divider>
-        </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleGoogleSignup}
-            startIcon={<GoogleIcon />}
-            sx={{
-              py: 1.5,
-              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-              color: isDarkMode ? '#fff' : '#000',
-              '&:hover': {
-                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
-              },
-            }}
-          >
-            Google
-          </Button>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleFacebookSignup}
-            startIcon={<FacebookIcon />}
-            sx={{
-              py: 1.5,
-              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-              color: isDarkMode ? '#fff' : '#000',
-              '&:hover': {
-                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
-              },
-            }}
-          >
-            Facebook
-          </Button>
-        </Box>
+          <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleGoogleSignup}
+              startIcon={<GoogleIcon />}
+              sx={{
+                py: 1.5,
+                color: '#757575',
+                borderColor: '#dadce0',
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  borderColor: '#dadce0',
+                  bgcolor: 'rgba(0, 0, 0, 0.05)',
+                  transform: 'translateY(-1px)',
+                },
+              }}
+            >
+              Google
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleFacebookSignup}
+              startIcon={<FacebookIcon />}
+              sx={{
+                py: 1.5,
+                color: '#1877f2',
+                borderColor: '#1877f2',
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  borderColor: '#1877f2',
+                  bgcolor: 'rgba(24, 119, 242, 0.05)',
+                  transform: 'translateY(-1px)',
+                },
+              }}
+            >
+              Facebook
+            </Button>
+          </Box>
 
-        <Typography 
-          variant="body2" 
-          align="center"
-          sx={{ 
-            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)' 
-          }}
-        >
-          Already have an account?{' '}
-          <Link
-            to="/login"
-            style={{
-              color: isDarkMode ? '#90caf9' : '#1976d2',
-              textDecoration: 'none',
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'text.secondary',
+              mt: 2,
+              textAlign: 'center',
+              fontSize: '0.875rem',
             }}
           >
-            Log in
-          </Link>
-        </Typography>
-      </Paper>
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+                borderBottom: '1px dashed',
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              Sign in
+            </Link>
+          </Typography>
+        </Box>
+      </Container>
     </Box>
   );
 };

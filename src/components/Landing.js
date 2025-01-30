@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Box, Container, Typography, Button, TextField, IconButton } from '@mui/material';
+import { Box, Container, Typography, Button, TextField, IconButton, alpha } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowForwardIcon, AttachFile as AttachFileIcon, Close as CloseIcon } from '@mui/icons-material';
 import Logo from './Logo';
@@ -84,7 +84,7 @@ const Landing = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'background.default',
         p: 3,
       }}
     >
@@ -121,12 +121,12 @@ const Landing = () => {
           to="/signin"
           variant="outlined"
           sx={{
-            borderColor: '#000',
-            color: '#000',
+            borderColor: 'text.primary',
+            color: 'text.primary',
             borderRadius: 0,
             px: 4,
             '&:hover': {
-              borderColor: '#000',
+              borderColor: 'text.primary',
               backgroundColor: 'rgba(0, 0, 0, 0.05)',
             },
           }}
@@ -138,12 +138,12 @@ const Landing = () => {
           to="/signup"
           variant="contained"
           sx={{
-            backgroundColor: '#000',
-            color: '#fff',
+            backgroundColor: 'primary.main',
+            color: 'primary.contrastText',
             borderRadius: 0,
             px: 4,
             '&:hover': {
-              backgroundColor: '#333',
+              backgroundColor: 'primary.dark',
             },
           }}
         >
@@ -188,7 +188,7 @@ const Landing = () => {
             variant="h1"
             component="h1"
             sx={{
-              color: '#000000',
+              color: 'text.primary',
               mb: { xs: 3, md: 4 },
               position: 'relative',
               zIndex: 1,
@@ -223,13 +223,13 @@ const Landing = () => {
                 sx={{
                   mb: 1.5,
                   p: 1.5,
-                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                  backgroundColor: (theme) => theme.palette.background.paper,
                   borderRadius: 2,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  border: (theme) => `1px solid ${theme.palette.background.paper}`,
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
                   maxWidth: 800,
                   mx: 'auto',
@@ -237,8 +237,8 @@ const Landing = () => {
                   transition: 'all 0.2s ease-in-out',
                   willChange: 'transform',
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    backgroundColor: (theme) => theme.palette.background.paper,
+                    border: (theme) => `1px solid ${theme.palette.background.paper}`,
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                   },
                 }}
@@ -286,14 +286,14 @@ const Landing = () => {
                         backdropFilter: 'blur(4px)',
                       }}
                     >
-                      <AttachFileIcon sx={{ fontSize: 24, color: 'rgba(0, 0, 0, 0.4)' }} />
+                      <AttachFileIcon sx={{ fontSize: 24, color: 'text.primary' }} />
                     </Box>
                   )}
                   <Box sx={{ minWidth: 0 }}>
                     <Typography
                       variant="body2"
                       sx={{
-                        color: 'rgba(0, 0, 0, 0.7)',
+                        color: 'text.primary',
                         fontWeight: 500,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
@@ -305,7 +305,7 @@ const Landing = () => {
                     <Typography
                       variant="caption"
                       sx={{
-                        color: 'rgba(0, 0, 0, 0.5)',
+                        color: 'text.secondary',
                         display: 'block',
                       }}
                     >
@@ -317,13 +317,13 @@ const Landing = () => {
                   size="small"
                   onClick={() => setAttachment(null)}
                   sx={{
-                    color: 'rgba(0, 0, 0, 0.4)',
+                    color: 'text.primary',
                     backdropFilter: 'blur(4px)',
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     width: 28,
                     height: 28,
                     '&:hover': {
-                      color: 'rgba(255, 59, 48, 0.8)',
+                      color: 'error.main',
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
                     },
                   }}
@@ -352,7 +352,7 @@ const Landing = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     pr: '96px', // Space for icons
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: 'background.paper',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                     borderRadius: 2,
                     border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -360,11 +360,11 @@ const Landing = () => {
                       border: 'none',
                     },
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      backgroundColor: 'background.paper',
                       border: '1px solid rgba(0, 0, 0, 0.15)',
                     },
                     '&.Mui-focused': {
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                      backgroundColor: 'background.paper',
                       border: '1px solid rgba(0, 0, 0, 0.2)',
                     },
                     '& textarea': {
@@ -394,39 +394,39 @@ const Landing = () => {
                   onClick={() => fileInputRef.current?.click()}
                   className={`${attachment ? 'rotate-scale' : 'bounce-in'}`}
                   sx={{
-                    color: attachment ? 'primary.main' : 'rgba(0, 0, 0, 0.54)',
+                    color: attachment ? 'primary.main' : 'text.primary',
                     cursor: 'pointer',
                     padding: '8px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backgroundColor: (theme) => theme.palette.background.paper,
                     backdropFilter: 'blur(4px)',
                     '&:hover': {
                       color: 'primary.main',
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      backgroundColor: (theme) => theme.palette.background.paper,
                     },
                   }}
                 >
-                  <Paperclip stroke={attachment ? '#1976d2' : 'rgba(0, 0, 0, 0.54)'} />
+                  <Paperclip stroke={attachment ? 'primary.main' : 'text.primary'} />
                 </Box>
                 <IconButton
                   type="submit"
                   disabled={!input.trim() && !attachment}
                   sx={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    color: '#fff',
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
                     width: 40,
                     height: 40,
                     transition: 'all 0.2s ease-in-out',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: (theme) => `1px solid ${theme.palette.primary.main}`,
                     '&:hover': {
-                      backgroundColor: '#000',
+                      backgroundColor: 'primary.dark',
                     },
                     '&.Mui-disabled': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                      color: 'rgba(255, 255, 255, 0.8)',
+                      backgroundColor: (theme) => theme.palette.action.disabled,
+                      color: 'text.disabled',
                     },
                   }}
                 >
