@@ -5,7 +5,6 @@ import Landing from './components/Landing';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
 import Home from './components/Home';
-import ChatPage from './pages/ChatPage';
 import InterfaceSettings from './components/InterfaceSettings';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
@@ -69,14 +68,6 @@ function App() {
                   <AuthenticatedRoute>
                     <Home />
                   </AuthenticatedRoute>
-                }
-              />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <ChatPage />
-                  </ProtectedRoute>
                 }
               />
               <Route

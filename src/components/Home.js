@@ -189,7 +189,12 @@ const Home = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim() || attachment) {
-      navigate('/chat', { state: { initialMessage: input, initialAttachment: attachment } });
+      // Process the input and attachment here
+      console.log('Processing input:', input);
+      console.log('Processing attachment:', attachment);
+      // Clear the input and attachment
+      setInput('');
+      setAttachment(null);
     }
   };
 

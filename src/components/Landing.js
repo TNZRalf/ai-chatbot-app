@@ -46,11 +46,11 @@ const Landing = () => {
     e.preventDefault();
     if (input.trim() || attachment) {
       if (user) {
-        navigate('/chat', { state: { initialMessage: input, initialAttachment: attachment } });
+        navigate('/home', { state: { initialMessage: input, initialAttachment: attachment } });
       } else {
-        navigate('/signin', { 
+        navigate('/login', { 
           state: { 
-            from: '/chat', 
+            from: '/home', 
             initialMessage: input, 
             initialAttachment: attachment 
           } 

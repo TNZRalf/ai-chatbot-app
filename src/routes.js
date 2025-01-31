@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import App from './App';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
-import ChatPage from './pages/ChatPage';
 
 // This is a placeholder. In a real app, you'd implement proper authentication
 const isAuthenticated = () => {
@@ -29,14 +28,6 @@ const routes = [
   {
     path: '/signup',
     element: <SignUp />,
-  },
-  {
-    path: '/chat',
-    element: (
-      <ProtectedRoute>
-        <ChatPage />
-      </ProtectedRoute>
-    ),
   },
 ];
 

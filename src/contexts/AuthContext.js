@@ -1,5 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import { 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+  signInWithPopup,
+  updateProfile
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
+import { createUserProfile, updateUserProfile } from '../services/firebaseService';
 
 const AuthContext = createContext();
 
@@ -12,78 +23,113 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
-
-  // Configure axios to include credentials
-  axios.defaults.withCredentials = true;
-
   useEffect(() => {
-    checkAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Update last login time when user signs in
+        try {
+          await updateUserProfile(user.uid, {
+            lastLogin: new Date()
+          });
+        } catch (err) {
+          console.error('Error updating last login:', err);
+        }
+      }
+      setUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
-  const checkAuth = async () => {
+  const signup = async (email, password, username) => {
     try {
-      const response = await axios.get(`${serverUrl}/auth/me`);
-      setUser(response.data.user);
+      setError(null);
+      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update user profile with display name
+      await updateProfile(user, { displayName: username });
+      
+      // Create user profile in Firestore
+      await createUserProfile(user.uid, {
+        username,
+        email,
+        createdAt: new Date(),
+        lastLogin: new Date(),
+        photoURL: null
+      });
+      
+      setUser(user);
+      return { user };
     } catch (err) {
-      setUser(null);
-    } finally {
-      setLoading(false);
+      setError(err.message);
+      throw err;
     }
   };
 
   const login = async (email, password) => {
     try {
       setError(null);
-      const response = await axios.post(`${serverUrl}/auth/login`, {
-        email,
-        password
-      });
-      setUser(response.data.user);
-      return response.data;
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+      return { user: result.user };
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred during login');
+      setError(err.message);
       throw err;
     }
   };
 
-  const signup = async (username, email, password) => {
+  const loginWithGoogle = async () => {
     try {
       setError(null);
-      const response = await axios.post(`${serverUrl}/auth/signup`, {
-        username,
-        email,
-        password
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Create/update user profile
+      await createUserProfile(result.user.uid, {
+        username: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+        lastLogin: new Date()
       });
-      setUser(response.data.user);
-      return response.data;
+      
+      setUser(result.user);
+      return { user: result.user };
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred during signup');
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const loginWithFacebook = async () => {
+    try {
+      setError(null);
+      const provider = new FacebookAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Create/update user profile
+      await createUserProfile(result.user.uid, {
+        username: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+        lastLogin: new Date()
+      });
+      
+      setUser(result.user);
+      return { user: result.user };
+    } catch (err) {
+      setError(err.message);
       throw err;
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post(`${serverUrl}/auth/logout`);
+      setError(null);
+      await signOut(auth);
       setUser(null);
     } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
-
-  const updateUser = async (formData) => {
-    try {
-      setError(null);
-      const response = await axios.put(`${serverUrl}/auth/profile`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      setUser(response.data.user);
-      return response.data;
-    } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred while updating profile');
+      setError(err.message);
       throw err;
     }
   };
@@ -92,10 +138,11 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
-    login,
     signup,
-    logout,
-    updateUser
+    login,
+    loginWithGoogle,
+    loginWithFacebook,
+    logout
   };
 
   return (

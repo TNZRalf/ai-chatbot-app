@@ -1,8 +1,24 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Button, TextField, Divider, Alert, alpha } from '@mui/material';
-import { Facebook } from '@mui/icons-material';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  TextField,
+  Divider,
+  Alert,
+  alpha,
+  IconButton,
+  InputAdornment,
+} from '@mui/material';
+import {
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+} from '@mui/icons-material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { updateUserProfile } from '../services/firebaseService';
 import Logo from './Logo';
 
 const GoogleIcon = () => (
@@ -24,42 +40,84 @@ const FacebookIcon = () => (
 );
 
 const SignIn = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { login, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+    
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        // Redirect to the page they came from or to chat
-        const from = location.state?.from?.pathname || '/chat';
-        navigate(from);
-      } else {
-        setError(result.error || 'Failed to sign in');
-      }
-    } catch (error) {
-      setError('Failed to sign in');
+      const { user } = await login(email, password);
+      
+      // Update user's last login time
+      await updateUserProfile(user.uid, {
+        lastLogin: new Date(),
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light'
+        }
+      });
+
+      // Redirect to the page they came from or to home
+      const from = location.state?.from?.pathname || '/home';
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err.message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = () => {
-    window.location.href = `${process.env.REACT_APP_SERVER_URL}/auth/google`;
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      const { user } = await loginWithGoogle();
+      
+      // Update user profile
+      await updateUserProfile(user.uid, {
+        lastLogin: new Date(),
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light'
+        }
+      });
+
+      const from = location.state?.from?.pathname || '/home';
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFacebookSignIn = () => {
-    window.location.href = `${process.env.REACT_APP_SERVER_URL}/auth/facebook`;
+  const handleFacebookSignIn = async () => {
+    try {
+      setLoading(true);
+      const { user } = await loginWithFacebook();
+      
+      // Update user profile
+      await updateUserProfile(user.uid, {
+        lastLogin: new Date(),
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light'
+        }
+      });
+
+      const from = location.state?.from?.pathname || '/home';
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -98,19 +156,11 @@ const SignIn = () => {
           zIndex: 0,
           overflow: 'hidden',
           '& img': {
-            width: 'clamp(1000px, 90%, 1400px)',
-            minWidth: '1000px',
-            height: 'auto',
-            objectFit: 'contain',
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
             opacity: 1,
-            '@media (max-width: 852px)': {
-              minWidth: '900px',
-              transform: 'translateX(0)',
-            },
-            '@media (max-width: 441px)': {
-              minWidth: '800px',
-              transform: 'translateX(0)',
-            },
           },
         }}
       >
@@ -120,7 +170,7 @@ const SignIn = () => {
       {/* Logo at the top */}
       <Box
         sx={{
-          position: 'absolute',
+          position: 'fixed',
           top: { xs: 16, sm: 24 },
           left: 0,
           right: 0,
@@ -137,8 +187,13 @@ const SignIn = () => {
         sx={{ 
           position: 'relative',
           zIndex: 2,
-          py: { xs: 4, sm: 8 },
-          mt: { xs: 6, sm: 8 },
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pt: { xs: '64px', sm: '80px' },
+          pb: { xs: '24px', sm: '32px' },
           px: { xs: 2, sm: 3 },
         }}
       >
@@ -173,7 +228,7 @@ const SignIn = () => {
               letterSpacing: '-0.02em',
             }}
           >
-            Sign in to AI Chat Assistant
+            Sign in to AI Assistant
           </Typography>
 
           {error && (
@@ -237,6 +292,19 @@ const SignIn = () => {
                   },
                 },
               },
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
           />
 

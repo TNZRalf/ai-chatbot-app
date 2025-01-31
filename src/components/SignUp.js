@@ -15,9 +15,10 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { createUserProfile } from '../services/firebaseService';
 import Logo from './Logo';
 
 const SignUp = () => {
@@ -28,67 +29,140 @@ const SignUp = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { signup, loginWithGoogle, loginWithFacebook } = useAuth();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
 
-  const validatePassword = () => {
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+  const validateForm = () => {
+    // Reset error
+    setError('');
+
+    // Validate username
+    if (!username.trim()) {
+      setError('Username is required');
       return false;
     }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate password
     if (password.length < 6) {
       setError('Password must be at least 6 characters long');
       return false;
     }
+
+    // Validate password match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (!validatePassword()) return;
+    
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      await signup(email, password, username);
+      setLoading(true);
+      const { user } = await signup(email, password);
+      
+      // Update user profile with display name
+      await createUserProfile(user.uid, {
+        username,
+        email,
+        createdAt: new Date(),
+        lastLogin: new Date(),
+        photoURL: null,
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light',
+          notifications: true
+        }
+      });
+
+      navigate('/home');
     } catch (err) {
-      setError(err.message);
+      console.error('Signup error:', err);
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          setError('This email is already registered. Please try logging in.');
+          break;
+        case 'auth/invalid-email':
+          setError('Please enter a valid email address.');
+          break;
+        case 'auth/operation-not-allowed':
+          setError('Email/password accounts are not enabled. Please contact support.');
+          break;
+        case 'auth/weak-password':
+          setError('Please choose a stronger password.');
+          break;
+        default:
+          setError('Failed to create account. ' + err.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
     try {
-      await loginWithGoogle();
+      setLoading(true);
+      const { user } = await loginWithGoogle();
+      
+      await createUserProfile(user.uid, {
+        username: user.displayName || email.split('@')[0],
+        email: user.email,
+        photoURL: user.photoURL,
+        lastLogin: new Date(),
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light',
+          notifications: true
+        }
+      });
+
+      navigate('/home');
     } catch (err) {
-      setError(err.message);
+      console.error('Google signup error:', err);
+      setError('Failed to sign up with Google. ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFacebookSignup = async () => {
     try {
-      await loginWithFacebook();
+      setLoading(true);
+      const { user } = await loginWithFacebook();
+      
+      await createUserProfile(user.uid, {
+        username: user.displayName || email.split('@')[0],
+        email: user.email,
+        photoURL: user.photoURL,
+        lastLogin: new Date(),
+        preferences: {
+          theme: isDarkMode ? 'dark' : 'light',
+          notifications: true
+        }
+      });
+
+      navigate('/home');
     } catch (err) {
-      setError(err.message);
+      console.error('Facebook signup error:', err);
+      setError('Failed to sign up with Facebook. ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const GoogleIcon = () => (
-    <Box
-      component="img"
-      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-      alt="Google"
-      sx={{ width: 20, height: 20 }}
-    />
-  );
-
-  const FacebookIcon = () => (
-    <Box
-      component="img"
-      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
-      alt="Facebook"
-      sx={{ width: 20, height: 20 }}
-    />
-  );
 
   return (
     <Box
@@ -126,19 +200,11 @@ const SignUp = () => {
           zIndex: 0,
           overflow: 'hidden',
           '& img': {
-            width: 'clamp(1000px, 90%, 1400px)',
-            minWidth: '1000px',
-            height: 'auto',
-            objectFit: 'contain',
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
             opacity: 1,
-            '@media (max-width: 852px)': {
-              minWidth: '900px',
-              transform: 'translateX(0)',
-            },
-            '@media (max-width: 441px)': {
-              minWidth: '800px',
-              transform: 'translateX(0)',
-            },
           },
         }}
       >
@@ -148,7 +214,7 @@ const SignUp = () => {
       {/* Logo at the top */}
       <Box
         sx={{
-          position: 'absolute',
+          position: 'fixed',
           top: { xs: 16, sm: 24 },
           left: 0,
           right: 0,
@@ -165,8 +231,13 @@ const SignUp = () => {
         sx={{ 
           position: 'relative',
           zIndex: 2,
-          py: { xs: 4, sm: 8 },
-          mt: { xs: 6, sm: 8 },
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pt: { xs: '64px', sm: '80px' },
+          pb: { xs: '24px', sm: '32px' },
           px: { xs: 2, sm: 3 },
         }}
       >
@@ -263,6 +334,7 @@ const SignUp = () => {
                 },
               },
             }}
+            error={error?.includes('email')}
           />
 
           <TextField
@@ -304,6 +376,7 @@ const SignUp = () => {
                 },
               },
             }}
+            error={error?.includes('password')}
           />
 
           <TextField
@@ -345,6 +418,7 @@ const SignUp = () => {
                 },
               },
             }}
+            error={error?.includes('match')}
           />
 
           <Button
@@ -370,6 +444,7 @@ const SignUp = () => {
                 transform: 'translateY(0)',
               },
             }}
+            disabled={loading}
           >
             Create Account
           </Button>
@@ -400,7 +475,12 @@ const SignUp = () => {
               fullWidth
               variant="outlined"
               onClick={handleGoogleSignup}
-              startIcon={<GoogleIcon />}
+              startIcon={<Box
+                component="img"
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt="Google"
+                sx={{ width: 20, height: 20 }}
+              />}
               sx={{
                 py: 1.5,
                 color: '#757575',
@@ -416,6 +496,7 @@ const SignUp = () => {
                   transform: 'translateY(-1px)',
                 },
               }}
+              disabled={loading}
             >
               Google
             </Button>
@@ -423,7 +504,12 @@ const SignUp = () => {
               fullWidth
               variant="outlined"
               onClick={handleFacebookSignup}
-              startIcon={<FacebookIcon />}
+              startIcon={<Box
+                component="img"
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
+                alt="Facebook"
+                sx={{ width: 20, height: 20 }}
+              />}
               sx={{
                 py: 1.5,
                 color: '#1877f2',
@@ -439,6 +525,7 @@ const SignUp = () => {
                   transform: 'translateY(-1px)',
                 },
               }}
+              disabled={loading}
             >
               Facebook
             </Button>

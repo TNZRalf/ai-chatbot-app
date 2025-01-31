@@ -7,7 +7,6 @@ import theme from './theme';
 import App from './App';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
-import ChatPage from './pages/ChatPage';
 import { SidebarProvider } from './contexts/SidebarContext';
 
 // This is a placeholder. In a real app, you'd implement proper authentication
@@ -40,14 +39,6 @@ root.render(
             <Route path="/" element={<App />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route 
-              path="/chat" 
-              element={
-                <ProtectedRoute>
-                  <ChatPage />
-                </ProtectedRoute>
-              } 
-            />
           </ReactRoutes>
         </Router>
       </SidebarProvider>
