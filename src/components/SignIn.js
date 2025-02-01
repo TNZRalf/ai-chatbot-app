@@ -30,18 +30,20 @@ const GoogleIcon = () => (
   />
 );
 
-const FacebookIcon = () => (
-  <Box
-    component="img"
-    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
-    alt="Facebook"
-    sx={{ 
-      width: 20, 
-      height: 20,
-      filter: (theme) => theme.palette.mode === 'light' ? 'invert(23%) sepia(91%) saturate(1957%) hue-rotate(202deg) brightness(97%) contrast(101%)' : 'none'
-    }}
-  />
-);
+const FacebookIcon = () => {
+  const { isDarkMode } = useTheme();
+  return (
+    <Box
+      component="img"
+      src={isDarkMode 
+        ? "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
+        : "/facebook-blue.svg"
+      }
+      alt="Facebook"
+      sx={{ width: 20, height: 20 }}
+    />
+  );
+};
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
