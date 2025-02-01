@@ -2,20 +2,25 @@ import React, { useState } from 'react';
 import {
   Box,
   Container,
+  Typography,
   Button,
   TextField,
-  Typography,
-  IconButton,
-  InputAdornment,
   Divider,
   Alert,
+  Snackbar,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  IconButton,
+  InputAdornment,
   alpha,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { createUserProfile } from '../services/firebaseService';
@@ -24,90 +29,94 @@ import Logo from './Logo';
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const { signup, loginWithGoogle, loginWithFacebook } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-
-  const validateForm = () => {
-    // Reset error
-    setError('');
-
-    // Validate username
-    if (!username.trim()) {
-      setError('Username is required');
-      return false;
-    }
-
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    // Validate password
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-
-    // Validate password match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-
-    return true;
-  };
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    // Quick validation
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password || password !== confirmPassword) {
+      setError('Please fill in all fields correctly');
       return;
     }
 
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const { user } = await signup(email, password);
-      
-      // Update user profile with display name
+      // Create user with email and password
+      const { user } = await signup(email, password, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        displayName: `${firstName.trim()} ${lastName.trim()}`
+      });
+
+      // Create user profile
       await createUserProfile(user.uid, {
-        username,
-        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        displayName: `${firstName.trim()} ${lastName.trim()}`,
         createdAt: new Date(),
         lastLogin: new Date(),
         photoURL: null,
         preferences: {
           theme: isDarkMode ? 'dark' : 'light',
-          notifications: true
+          notifications: true,
+          language: 'en'
         }
       });
 
-      navigate('/home');
+      // Show success dialog
+      setShowSuccessDialog(true);
+      setSuccess('Account created successfully!');
+      
+      // Wait 2 seconds then navigate to sign in
+      setTimeout(() => {
+        setShowSuccessDialog(false);
+        navigate('/signin', { 
+          state: { 
+            email: email.trim(),
+            message: 'Account created successfully! Please sign in with your email and password.' 
+          },
+          replace: true // This prevents going back to signup page
+        });
+      }, 2000);
+
     } catch (err) {
-      console.error('Signup error:', err);
+      console.error('Sign-up error:', err);
       switch (err.code) {
         case 'auth/email-already-in-use':
-          setError('This email is already registered. Please try logging in.');
+          setError('An account with this email already exists');
           break;
         case 'auth/invalid-email':
-          setError('Please enter a valid email address.');
+          setError('Please enter a valid email address');
           break;
         case 'auth/operation-not-allowed':
-          setError('Email/password accounts are not enabled. Please contact support.');
+          setError('Email/password accounts are not enabled. Please contact support');
           break;
         case 'auth/weak-password':
-          setError('Please choose a stronger password.');
+          setError('Password is too weak. Please choose a stronger password');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
           break;
         default:
-          setError('Failed to create account. ' + err.message);
+          setError('Failed to create account. ' + (err.message || 'Please try again'));
       }
     } finally {
       setLoading(false);
@@ -117,23 +126,45 @@ const SignUp = () => {
   const handleGoogleSignup = async () => {
     try {
       setLoading(true);
+      setError('');
       const { user } = await loginWithGoogle();
-      
+
+      // Create user profile if it doesn't exist
       await createUserProfile(user.uid, {
-        username: user.displayName || email.split('@')[0],
+        firstName: user.displayName?.split(' ')[0] || '',
+        lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        photoURL: user.photoURL,
+        displayName: user.displayName,
+        createdAt: new Date(),
         lastLogin: new Date(),
+        photoURL: user.photoURL,
         preferences: {
           theme: isDarkMode ? 'dark' : 'light',
-          notifications: true
+          notifications: true,
+          language: 'en'
         }
       });
 
+      // Navigate directly to home for Google sign-up
       navigate('/home');
     } catch (err) {
-      console.error('Google signup error:', err);
-      setError('Failed to sign up with Google. ' + err.message);
+      console.error('Google sign-up error:', err);
+      switch (err.code) {
+        case 'auth/popup-closed-by-user':
+          setError('Sign-up cancelled. Please try again');
+          break;
+        case 'auth/popup-blocked':
+          setError('Pop-up blocked by browser. Please allow pop-ups for this site');
+          break;
+        case 'auth/account-exists-with-different-credential':
+          setError('An account already exists with this email using a different sign-in method');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError('Failed to sign up with Google. ' + (err.message || 'Please try again'));
+      }
     } finally {
       setLoading(false);
     }
@@ -142,23 +173,45 @@ const SignUp = () => {
   const handleFacebookSignup = async () => {
     try {
       setLoading(true);
+      setError('');
       const { user } = await loginWithFacebook();
-      
+
+      // Create user profile if it doesn't exist
       await createUserProfile(user.uid, {
-        username: user.displayName || email.split('@')[0],
+        firstName: user.displayName?.split(' ')[0] || '',
+        lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        photoURL: user.photoURL,
+        displayName: user.displayName,
+        createdAt: new Date(),
         lastLogin: new Date(),
+        photoURL: user.photoURL,
         preferences: {
           theme: isDarkMode ? 'dark' : 'light',
-          notifications: true
+          notifications: true,
+          language: 'en'
         }
       });
 
+      // Navigate directly to home for Facebook sign-up
       navigate('/home');
     } catch (err) {
-      console.error('Facebook signup error:', err);
-      setError('Failed to sign up with Facebook. ' + err.message);
+      console.error('Facebook sign-up error:', err);
+      switch (err.code) {
+        case 'auth/popup-closed-by-user':
+          setError('Sign-up cancelled. Please try again');
+          break;
+        case 'auth/popup-blocked':
+          setError('Pop-up blocked by browser. Please allow pop-ups for this site');
+          break;
+        case 'auth/account-exists-with-different-credential':
+          setError('An account already exists with this email using a different sign-in method');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError('Failed to sign up with Facebook. ' + (err.message || 'Please try again'));
+      }
     } finally {
       setLoading(false);
     }
@@ -269,190 +322,180 @@ const SignUp = () => {
               background: (theme) => `linear-gradient(90deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              letterSpacing: '-0.02em',
+              textAlign: 'center',
             }}
           >
-            Create your account
+            Create Account
           </Typography>
 
           {error && (
             <Alert 
               severity="error" 
               sx={{ 
-                width: '100%', 
-                mb: 2,
-                borderRadius: 2,
-                '& .MuiAlert-icon': {
-                  color: 'error.main'
-                }
+                mb: 3, 
+                width: '100%',
+                '& .MuiAlert-message': {
+                  width: '100%',
+                },
               }}
             >
               {error}
             </Alert>
           )}
 
-          <TextField
-            margin="dense"
-            required
-            fullWidth
-            label="Username"
-            name="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            sx={{
-              mb: 1,
-              '& .MuiOutlinedInput-root': {
+          {location.state?.message && (
+            <Alert 
+              severity="success" 
+              sx={{ 
+                mb: 3, 
+                width: '100%',
+                '& .MuiAlert-message': {
+                  width: '100%',
+                },
+              }}
+            >
+              {location.state.message}
+            </Alert>
+          )}
+
+          <Box sx={{ width: '100%', mb: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <TextField
+                required
+                fullWidth
+                label="First Name"
+                name="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              />
+              <TextField
+                required
+                fullWidth
+                label="Last Name"
+                name="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              />
+            </Box>
+
+            <TextField
+              required
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            <TextField
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            <TextField
+              required
+              fullWidth
+              name="confirmPassword"
+              label="Confirm Password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading}
+              sx={{
+                py: 1.5,
                 borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 500,
+                boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+                background: (theme) => `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
                 transition: 'all 0.2s ease-in-out',
                 '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'primary.main',
-                  },
+                  transform: 'translateY(-1px)',
+                  boxShadow: (theme) => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
                 },
-              },
-            }}
-          />
-
-          <TextField
-            margin="dense"
-            required
-            fullWidth
-            label="Email Address"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{
-              mb: 1,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'primary.main',
-                  },
+                '&:active': {
+                  transform: 'translateY(0)',
                 },
-              },
-            }}
-            error={error?.includes('email')}
-          />
-
-          <TextField
-            margin="dense"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': {
-                        color: 'primary.main',
-                      },
-                    }}
-                  >
-                    {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 1,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              },
-            }}
-            error={error?.includes('password')}
-          />
-
-          <TextField
-            margin="dense"
-            required
-            fullWidth
-            name="confirmPassword"
-            label="Confirm Password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    edge="end"
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': {
-                        color: 'primary.main',
-                      },
-                    }}
-                  >
-                    {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 2,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              },
-            }}
-            error={error?.includes('match')}
-          />
-
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{
-              mt: 1,
-              mb: 2,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontSize: '1rem',
-              fontWeight: 500,
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
-              background: (theme) => `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-              transition: 'all 0.2s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                boxShadow: (theme) => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
-              },
-              '&:active': {
-                transform: 'translateY(0)',
-              },
-            }}
-            disabled={loading}
-          >
-            Create Account
-          </Button>
+              }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Create Account'}
+            </Button>
+          </Box>
 
           <Divider 
             sx={{ 
               width: '100%', 
-              my: 2,
+              my: 3,
               '&::before, &::after': {
                 borderColor: (theme) => alpha(theme.palette.divider, 0.1),
               },
@@ -470,17 +513,19 @@ const SignUp = () => {
             </Typography>
           </Divider>
 
-          <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 3 }}>
             <Button
               fullWidth
               variant="outlined"
               onClick={handleGoogleSignup}
-              startIcon={<Box
-                component="img"
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                alt="Google"
-                sx={{ width: 20, height: 20 }}
-              />}
+              disabled={loading}
+              startIcon={
+                <img
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                  alt="Google"
+                  style={{ width: 20, height: 20 }}
+                />
+              }
               sx={{
                 py: 1.5,
                 color: '#757575',
@@ -496,20 +541,22 @@ const SignUp = () => {
                   transform: 'translateY(-1px)',
                 },
               }}
-              disabled={loading}
             >
               Google
             </Button>
+
             <Button
               fullWidth
               variant="outlined"
               onClick={handleFacebookSignup}
-              startIcon={<Box
-                component="img"
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
-                alt="Facebook"
-                sx={{ width: 20, height: 20 }}
-              />}
+              disabled={loading}
+              startIcon={
+                <img
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg"
+                  alt="Facebook"
+                  style={{ width: 20, height: 20 }}
+                />
+              }
               sx={{
                 py: 1.5,
                 color: '#1877f2',
@@ -525,7 +572,6 @@ const SignUp = () => {
                   transform: 'translateY(-1px)',
                 },
               }}
-              disabled={loading}
             >
               Facebook
             </Button>
@@ -535,14 +581,13 @@ const SignUp = () => {
             variant="body2" 
             sx={{ 
               color: 'text.secondary',
-              mt: 2,
               textAlign: 'center',
               fontSize: '0.875rem',
             }}
           >
             Already have an account?{' '}
             <Link
-              to="/login"
+              to="/signin"
               style={{
                 color: 'inherit',
                 textDecoration: 'none',
@@ -555,6 +600,58 @@ const SignUp = () => {
           </Typography>
         </Box>
       </Container>
+
+      {/* Success Dialog */}
+      <Dialog
+        open={showSuccessDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            padding: 2,
+            minWidth: 300,
+            backgroundColor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
+            backdropFilter: 'blur(16px)',
+          }
+        }}
+      >
+        <DialogContent>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              py: 2,
+            }}
+          >
+            <CheckCircleOutlineIcon
+              sx={{
+                fontSize: 60,
+                color: 'success.main',
+                mb: 2,
+              }}
+            />
+            <Typography variant="h6" gutterBottom>
+              Account Created Successfully!
+            </Typography>
+            <Typography variant="body2" color="text.secondary" align="center">
+              Redirecting you to sign in...
+            </Typography>
+            <CircularProgress size={24} sx={{ mt: 2 }} />
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={2000}
+        onClose={() => setSuccess('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

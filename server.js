@@ -2,9 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const { testConnection } = require('./src/config/db.config');
-const { initializeUserModel } = require('./src/models/User');
-const authRoutes = require('./src/routes/auth.routes');
 require('dotenv').config();
 
 const app = express();
@@ -23,7 +20,7 @@ app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
-app.use('/auth', authRoutes);
+// app.use('/auth', authRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -47,31 +44,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const startServer = async () => {
-  try {
-    // Test database connection
-    const dbConnected = await testConnection();
-    if (!dbConnected) {
-      throw new Error('Database connection failed');
-    }
-
-    // Initialize models
-    const modelsInitialized = await initializeUserModel();
-    if (!modelsInitialized) {
-      throw new Error('Failed to initialize models');
-    }
-
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`✅ Server is running on port ${PORT}`);
-      console.log(`🌐 Client URL: ${process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000'}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🌐 Client URL: ${process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000'}`);
+});
 
 module.exports = app;

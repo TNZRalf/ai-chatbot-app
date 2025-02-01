@@ -56,14 +56,14 @@ router.post('/login', async (req, res) => {
       console.log('User not found with email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    console.log('User found:', user.username);
+    console.log('User found:', user.firstName);
 
     // Compare password using bcrypt directly
     const isValidPassword = await bcrypt.compare(password, user.password);
     console.log('Password validation result:', isValidPassword);
     
     if (!isValidPassword) {
-      console.log('Invalid password for user:', user.username);
+      console.log('Invalid password for user:', user.firstName);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -85,7 +85,7 @@ router.post('/login', async (req, res) => {
 
     // Return user data (excluding password)
     const { password: _, ...userData } = user.toJSON();
-    console.log('Login successful for user:', user.username);
+    console.log('Login successful for user:', user.firstName);
     res.json({ user: userData });
 
   } catch (error) {
@@ -97,24 +97,25 @@ router.post('/login', async (req, res) => {
 // Register route
 router.post('/signup', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
       where: {
-        [Op.or]: [{ email }, { username }]
+        [Op.or]: [{ email }]
       }
     });
 
     if (existingUser) {
       return res.status(400).json({
-        error: 'User with this email or username already exists'
+        error: 'User with this email already exists'
       });
     }
 
     // Create user
     const user = await User.create({
-      username,
+      firstName,
+      lastName,
       email,
       password
     });
@@ -144,21 +145,21 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// Check username availability
-router.get('/check-username/:username', async (req, res) => {
+// Check email availability
+router.get('/check-email/:email', async (req, res) => {
   try {
-    const { username } = req.params;
+    const { email } = req.params;
     const existingUser = await User.findOne({
       where: {
-        username: {
-          [Op.iLike]: username // Case-insensitive comparison
+        email: {
+          [Op.iLike]: email // Case-insensitive comparison
         }
       }
     });
     
     res.json({ available: !existingUser });
   } catch (error) {
-    console.error('Username check error:', error);
+    console.error('Email check error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -172,7 +173,8 @@ router.put('/profile', authenticateToken, upload.single('avatar'), async (req, r
     }
 
     // Update basic info
-    if (req.body.username) user.username = req.body.username;
+    if (req.body.firstName) user.firstName = req.body.firstName;
+    if (req.body.lastName) user.lastName = req.body.lastName;
     if (req.body.email) user.email = req.body.email;
 
     // Update password if provided

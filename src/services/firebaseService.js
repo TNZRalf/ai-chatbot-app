@@ -19,14 +19,31 @@ import { db, storage } from '../config/firebase';
 // User related operations
 export const createUserProfile = async (userId, userData) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    // Use setDoc instead of updateDoc for new users
-    await setDoc(userRef, {
-      ...userData,
+    if (!userId || !userData) {
+      throw new Error('Invalid user data');
+    }
+
+    const trimmedData = {
+      firstName: userData.firstName?.trim(),
+      lastName: userData.lastName?.trim(),
+      email: userData.email?.trim(),
+      displayName: userData.displayName || `${userData.firstName?.trim()} ${userData.lastName?.trim()}`,
+      photoURL: userData.photoURL || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
-    return { success: true };
+      lastLogin: serverTimestamp(),
+      isOnline: true,
+      preferences: userData.preferences || {
+        theme: 'light',
+        notifications: true,
+        language: 'en',
+      }
+    };
+
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, trimmedData, { merge: true });
+
+    return { success: true, data: trimmedData };
   } catch (error) {
     console.error('Error creating user profile:', error);
     throw error;

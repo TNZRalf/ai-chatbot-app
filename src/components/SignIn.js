@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -50,8 +50,33 @@ const SignIn = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    if (location.state?.message) {
+      // Set the email from signup if available
+      if (location.state.email) {
+        setEmail(location.state.email);
+      }
+      
+      // Clear the location state after using it
+      // This prevents the message from showing up again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const handleSignIn = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
     setError('');
     setLoading(true);
     
@@ -70,7 +95,29 @@ const SignIn = () => {
       const from = location.state?.from?.pathname || '/home';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Failed to sign in');
+      console.error('Sign-in error:', err);
+      switch (err.code) {
+        case 'auth/invalid-email':
+          setError('Please enter a valid email address');
+          break;
+        case 'auth/user-disabled':
+          setError('This account has been disabled. Please contact support');
+          break;
+        case 'auth/user-not-found':
+          setError('No account found with this email. Please sign up first');
+          break;
+        case 'auth/wrong-password':
+          setError('Incorrect password. Please try again');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many failed attempts. Please try again later');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError('Failed to sign in. ' + (err.message || 'Please try again'));
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +126,7 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      setError('');
       const { user } = await loginWithGoogle();
       
       // Update user profile
@@ -92,7 +140,23 @@ const SignIn = () => {
       const from = location.state?.from?.pathname || '/home';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message);
+      console.error('Google sign-in error:', err);
+      switch (err.code) {
+        case 'auth/popup-closed-by-user':
+          setError('Sign-in cancelled. Please try again');
+          break;
+        case 'auth/popup-blocked':
+          setError('Pop-up blocked by browser. Please allow pop-ups for this site');
+          break;
+        case 'auth/account-exists-with-different-credential':
+          setError('An account already exists with this email using a different sign-in method');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError('Failed to sign in with Google. ' + (err.message || 'Please try again'));
+      }
     } finally {
       setLoading(false);
     }
@@ -101,6 +165,7 @@ const SignIn = () => {
   const handleFacebookSignIn = async () => {
     try {
       setLoading(true);
+      setError('');
       const { user } = await loginWithFacebook();
       
       // Update user profile
@@ -114,7 +179,23 @@ const SignIn = () => {
       const from = location.state?.from?.pathname || '/home';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message);
+      console.error('Facebook sign-in error:', err);
+      switch (err.code) {
+        case 'auth/popup-closed-by-user':
+          setError('Sign-in cancelled. Please try again');
+          break;
+        case 'auth/popup-blocked':
+          setError('Pop-up blocked by browser. Please allow pop-ups for this site');
+          break;
+        case 'auth/account-exists-with-different-credential':
+          setError('An account already exists with this email using a different sign-in method');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError('Failed to sign in with Facebook. ' + (err.message || 'Please try again'));
+      }
     } finally {
       setLoading(false);
     }
@@ -230,6 +311,12 @@ const SignIn = () => {
           >
             Sign in to AI Assistant
           </Typography>
+
+          {location.state?.message && (
+            <Alert severity="success" sx={{ mb: 2, width: '100%' }}>
+              {location.state.message}
+            </Alert>
+          )}
 
           {error && (
             <Alert 

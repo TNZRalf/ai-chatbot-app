@@ -26,14 +26,15 @@ const UserProfileMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
-    username: user?.username || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     email: user?.email || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
   const [avatarFile, setAvatarFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(user?.avatarUrl || '');
+  const [previewUrl, setPreviewUrl] = useState(user?.photoURL || '');
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -51,14 +52,15 @@ const UserProfileMenu = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setFormData({
-      username: user?.username || '',
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
       email: user?.email || '',
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
     });
     setAvatarFile(null);
-    setPreviewUrl(user?.avatarUrl || '');
+    setPreviewUrl(user?.photoURL || '');
   };
 
   const handleInputChange = (e) => {
@@ -82,7 +84,8 @@ const UserProfileMenu = () => {
       if (avatarFile) {
         formDataToSend.append('avatar', avatarFile);
       }
-      formDataToSend.append('username', formData.username);
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
       formDataToSend.append('email', formData.email);
       if (formData.currentPassword && formData.newPassword) {
         formDataToSend.append('currentPassword', formData.currentPassword);
@@ -101,44 +104,68 @@ const UserProfileMenu = () => {
     logout();
   };
 
-  // Get user initials for avatar
   const getInitials = (name) => {
-    return name
-      ? name.split(' ').map(n => n[0]).join('').toUpperCase()
-      : '?';
+    if (!name) return '';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography variant="body1">
-          Welcome, {user?.username}!
-        </Typography>
-        <IconButton onClick={handleClick}>
-          <Avatar 
-            src={user?.avatarUrl}
-            alt={user?.username}
-            sx={{ bgcolor: 'primary.main' }}
-          >
-            {getInitials(user?.username)}
-          </Avatar>
-        </IconButton>
-      </Box>
+      <IconButton onClick={handleClick} sx={{ p: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body1" color="text.primary">
+            Welcome, {user?.displayName || `${user?.firstName} ${user?.lastName}`}!
+          </Typography>
+          {previewUrl ? (
+            <Avatar
+              src={previewUrl}
+              alt={user?.displayName || `${user?.firstName} ${user?.lastName}`}
+              sx={{ width: 32, height: 32 }}
+            />
+          ) : (
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+              {getInitials(user?.displayName || `${user?.firstName} ${user?.lastName}`)}
+            </Avatar>
+          )}
+        </Box>
+      </IconButton>
 
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+            mt: 1.5,
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={handleOpenDialog}>Edit Profile</MenuItem>
+        <MenuItem onClick={handleOpenDialog}>Profile Settings</MenuItem>
         <MenuItem onClick={handleLogout}>Logout</MenuItem>
       </Menu>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogTitle>Profile Settings</DialogTitle>
         <DialogContent>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mt: 2 }}>
+            <Stack spacing={2} alignItems="center">
+              {previewUrl ? (
+                <Avatar
+                  src={previewUrl}
+                  alt={formData.firstName}
+                  sx={{ width: 100, height: 100 }}
+                />
+              ) : (
+                <Avatar sx={{ width: 100, height: 100, bgcolor: 'primary.main' }}>
+                  {getInitials(`${formData.firstName} ${formData.lastName}`)}
+                </Avatar>
+              )}
+
               <label htmlFor="avatar-input">
                 <Input
                   accept="image/*"
@@ -146,81 +173,72 @@ const UserProfileMenu = () => {
                   type="file"
                   onChange={handleAvatarChange}
                 />
-                <Avatar
-                  src={previewUrl}
-                  alt={formData.username}
-                  sx={{ 
-                    width: 100, 
-                    height: 100, 
-                    cursor: 'pointer',
-                    '&:hover': {
-                      opacity: 0.8
-                    }
-                  }}
-                >
-                  {getInitials(formData.username)}
-                </Avatar>
+                <Button variant="outlined" component="span">
+                  Change Avatar
+                </Button>
               </label>
-            </Box>
 
-            <TextField
-              label="Username"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              fullWidth
-            />
+              <TextField
+                fullWidth
+                label="First Name"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+              />
 
-            <TextField
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              fullWidth
-            />
+              <TextField
+                fullWidth
+                label="Last Name"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+              />
 
-            <TextField
-              label="Current Password"
-              name="currentPassword"
-              type="password"
-              value={formData.currentPassword}
-              onChange={handleInputChange}
-              fullWidth
-            />
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+              />
 
-            <TextField
-              label="New Password"
-              name="newPassword"
-              type="password"
-              value={formData.newPassword}
-              onChange={handleInputChange}
-              fullWidth
-            />
+              <TextField
+                fullWidth
+                label="Current Password"
+                name="currentPassword"
+                type="password"
+                value={formData.currentPassword}
+                onChange={handleInputChange}
+              />
 
-            <TextField
-              label="Confirm New Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              fullWidth
-              error={formData.newPassword !== formData.confirmPassword}
-              helperText={
-                formData.newPassword !== formData.confirmPassword
-                  ? "Passwords don't match"
-                  : ''
-              }
-            />
-          </Stack>
+              <TextField
+                fullWidth
+                label="New Password"
+                name="newPassword"
+                type="password"
+                value={formData.newPassword}
+                onChange={handleInputChange}
+              />
+
+              <TextField
+                fullWidth
+                label="Confirm New Password"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+              />
+            </Stack>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
           <Button 
             onClick={handleSubmit}
-            variant="contained"
             disabled={
-              !formData.username || 
+              !formData.firstName || 
+              !formData.lastName || 
               !formData.email ||
               (formData.newPassword !== formData.confirmPassword) ||
               (formData.newPassword && !formData.currentPassword)

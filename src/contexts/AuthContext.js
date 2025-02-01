@@ -24,17 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Update last login time when user signs in
-        try {
-          await updateUserProfile(user.uid, {
-            lastLogin: new Date()
-          });
-        } catch (err) {
-          console.error('Error updating last login:', err);
-        }
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
     });
@@ -42,28 +32,27 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  const signup = async (email, password, username) => {
+  const signup = async (email, password, userData) => {
     try {
       setError(null);
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update user profile with display name
-      await updateProfile(user, { displayName: username });
+      const displayName = `${userData.firstName} ${userData.lastName}`;
+      await updateProfile(user, { displayName });
       
       // Create user profile in Firestore
       await createUserProfile(user.uid, {
-        username,
-        email,
-        createdAt: new Date(),
-        lastLogin: new Date(),
-        photoURL: null
+        ...userData,
+        displayName,
+        lastLogin: new Date()
       });
-      
+
       setUser(user);
       return { user };
-    } catch (err) {
-      setError(err.message);
-      throw err;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   };
 
@@ -71,11 +60,16 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const result = await signInWithEmailAndPassword(auth, email, password);
-      setUser(result.user);
-      return { user: result.user };
-    } catch (err) {
-      setError(err.message);
-      throw err;
+      
+      // Update last login time
+      await updateUserProfile(result.user.uid, {
+        lastLogin: new Date()
+      });
+
+      return result;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   };
 
@@ -85,19 +79,20 @@ export const AuthProvider = ({ children }) => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Create/update user profile
+      // Update or create user profile
       await createUserProfile(result.user.uid, {
-        username: result.user.displayName,
+        firstName: result.user.displayName?.split(' ')[0] || '',
+        lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
         email: result.user.email,
+        displayName: result.user.displayName,
         photoURL: result.user.photoURL,
         lastLogin: new Date()
       });
-      
-      setUser(result.user);
-      return { user: result.user };
-    } catch (err) {
-      setError(err.message);
-      throw err;
+
+      return result;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   };
 
@@ -107,19 +102,20 @@ export const AuthProvider = ({ children }) => {
       const provider = new FacebookAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Create/update user profile
+      // Update or create user profile
       await createUserProfile(result.user.uid, {
-        username: result.user.displayName,
+        firstName: result.user.displayName?.split(' ')[0] || '',
+        lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
         email: result.user.email,
+        displayName: result.user.displayName,
         photoURL: result.user.photoURL,
         lastLogin: new Date()
       });
-      
-      setUser(result.user);
-      return { user: result.user };
-    } catch (err) {
-      setError(err.message);
-      throw err;
+
+      return result;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   };
 
@@ -128,9 +124,9 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       await signOut(auth);
       setUser(null);
-    } catch (err) {
-      setError(err.message);
-      throw err;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   };
 

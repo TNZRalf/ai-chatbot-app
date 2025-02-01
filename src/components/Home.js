@@ -47,7 +47,8 @@ const Home = () => {
   const previewRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [profileData, setProfileData] = useState({
-    username: user?.username || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     email: user?.email || '',
     currentPassword: '',
     newPassword: '',
@@ -65,7 +66,8 @@ const Home = () => {
     if (user) {
       setProfileData(prev => ({
         ...prev,
-        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email
       }));
     }
@@ -127,7 +129,8 @@ const Home = () => {
 
     try {
       const formData = new FormData();
-      formData.append('username', profileData.username);
+      formData.append('firstName', profileData.firstName);
+      formData.append('lastName', profileData.lastName);
       formData.append('email', profileData.email);
       
       if (profileData.currentPassword && profileData.newPassword) {
@@ -322,12 +325,12 @@ const Home = () => {
         }}
       >
         <Typography variant="body1" sx={{ color: isDarkMode ? '#fff' : '#000' }}>
-          Welcome, {user?.username}!
+          Welcome, {user?.firstName} {user?.lastName}!
         </Typography>
         <IconButton onClick={handleMenuClick}>
           <Avatar
             src={user?.avatarUrl}
-            alt={user?.username}
+            alt={user?.firstName}
             id="user-avatar"
             sx={{
               width: 40,
@@ -340,7 +343,7 @@ const Home = () => {
               },
             }}
           >
-            {!user?.avatarUrl && getInitials(user?.username)}
+            {!user?.avatarUrl && getInitials(user?.firstName)}
           </Avatar>
         </IconButton>
       </Box>
@@ -715,11 +718,11 @@ const Home = () => {
               <Box sx={{ position: 'relative' }}>
                 <Avatar
                   src={profileData.avatar ? URL.createObjectURL(profileData.avatar) : user?.avatarUrl}
-                  alt={user?.username}
+                  alt={user?.firstName}
                   id="user-avatar"
                   sx={{ width: 100, height: 100 }}
                 >
-                  {!user?.avatarUrl && !profileData.avatar && getInitials(user?.username)}
+                  {!user?.avatarUrl && !profileData.avatar && getInitials(user?.firstName)}
                 </Avatar>
                 <label htmlFor="icon-button-file">
                   <Input
@@ -751,13 +754,17 @@ const Home = () => {
 
             <TextField
               fullWidth
-              label="Username"
-              name="username"
-              value={profileData.username}
+              label="First Name"
+              name="firstName"
+              value={profileData.firstName}
               onChange={handleInputChange}
-              error={!!usernameError}
-              helperText={usernameError}
-              sx={{ mb: usernameError ? 0 : 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Last Name"
+              name="lastName"
+              value={profileData.lastName}
+              onChange={handleInputChange}
             />
             <TextField
               fullWidth
