@@ -18,7 +18,7 @@ import {
   Snackbar,
   useTheme as useMuiTheme,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowForwardIcon, AttachFile as AttachFileIcon, Close as CloseIcon } from '@mui/icons-material';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
@@ -404,230 +404,44 @@ const Home = () => {
           </Typography>
 
           <Typography
-            variant="h2"
+            variant="body1"
+            color="text.secondary"
             sx={{
-              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : '#666',
-              mb: 6,
+              mb: 4,
               maxWidth: '600px',
               fontSize: {
                 xs: '18px',
                 sm: '20px',
-                md: '24px',
+                md: '22px',
               },
-              fontWeight: 300,
-              lineHeight: 1.4,
+              lineHeight: 1.5,
             }}
           >
-            Ask me anything, and I'll help you find the answers you need.
+            Get started by filling out your details or uploading your resume. Let's begin your journey!
           </Typography>
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
+          <Button
+            variant="contained"
+            onClick={() => navigate('/resume-parser')}
             sx={{
-              width: '100%',
-              maxWidth: '600px',
-              position: 'relative',
-              mt: 0,
+              py: 1.5,
+              px: 3,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 500,
+              mb: 4,
+              background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+              '&:hover': {
+                background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                transform: 'translateY(-2px)',
+                boxShadow: (theme) => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
+              },
             }}
           >
-            <TextField
-              fullWidth
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask me anything... 'What's the meaning of life?' 🤔"
-              variant="outlined"
-              multiline
-              maxRows={4}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  pr: '96px', // Space for icons
-                  backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  '& fieldset': {
-                    border: 'none',
-                  },
-                  '&:hover': {
-                    backgroundColor: isDarkMode ? 'rgba(55, 55, 55, 0.95)' : 'rgba(255, 255, 255, 1)',
-                    border: '1px solid rgba(0, 0, 0, 0.15)',
-                  },
-                  '&.Mui-focused': {
-                    backgroundColor: isDarkMode ? 'rgba(55, 55, 55, 0.95)' : 'rgba(255, 255, 255, 1)',
-                    border: '1px solid rgba(0, 0, 0, 0.2)',
-                  },
-                  '& textarea': {
-                    padding: '16px',
-                    fontSize: '1.1rem',
-                    '&::placeholder': {
-                      opacity: 0.7,
-                      fontStyle: 'italic',
-                    },
-                  },
-                },
-              }}
-            />
-            <Box
-              sx={{
-                position: 'absolute',
-                right: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                zIndex: 1,
-              }}
-            >
-              <IconButton
-                onClick={() => fileInputRef.current?.click()}
-                size="small"
-                sx={{
-                  width: 36,
-                  height: 36,
-                  color: isDarkMode ? '#90caf9' : '#1976d2',
-                  backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.08)' : 'rgba(25, 118, 210, 0.08)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': {
-                    backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.12)' : 'rgba(25, 118, 210, 0.12)',
-                    transform: 'translateY(-1px)',
-                  },
-                  '&:active': {
-                    transform: 'translateY(0)',
-                  },
-                }}
-              >
-                <AttachFileIcon 
-                  sx={{ 
-                    fontSize: 20,
-                    transform: 'rotate(45deg)',
-                    transition: 'transform 0.2s ease'
-                  }} 
-                />
-              </IconButton>
-
-              <IconButton
-                onClick={handleSubmit}
-                disabled={!input.trim() && !attachment}
-                size="small"
-                sx={{
-                  width: 36,
-                  height: 36,
-                  color: isDarkMode ? '#fff' : '#fff',
-                  backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': {
-                    backgroundColor: isDarkMode ? '#82b7e3' : '#1565c0',
-                    transform: 'translateY(-1px)',
-                  },
-                  '&:active': {
-                    transform: 'translateY(0)',
-                  },
-                  '&.Mui-disabled': {
-                    backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.12)' : 'rgba(25, 118, 210, 0.12)',
-                    color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.3)',
-                  }
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Box>
-            {attachment && (
-              <Box
-                ref={previewRef}
-                sx={{
-                  position: 'absolute',
-                  bottom: 'calc(100% + 8px)',
-                  right: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.08)' : 'rgba(25, 118, 210, 0.08)',
-                  border: '1px solid',
-                  borderColor: isDarkMode ? 'rgba(144, 202, 249, 0.2)' : 'rgba(25, 118, 210, 0.2)',
-                  maxWidth: '300px',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-              >
-                {previewUrl ? (
-                  <Box
-                    component="img"
-                    src={previewUrl}
-                    alt="Preview"
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      objectFit: 'cover',
-                      borderRadius: '4px',
-                    }}
-                  />
-                ) : (
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '4px',
-                      backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.12)' : 'rgba(25, 118, 210, 0.12)',
-                    }}
-                  >
-                    <Paperclip />
-                  </Box>
-                )}
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? '#90caf9' : '#1976d2',
-                      fontWeight: 500,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {attachment.name}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
-                      display: 'block',
-                    }}
-                  >
-                    {(attachment.size / 1024).toFixed(1)} KB
-                  </Typography>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={() => setAttachment(null)}
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
-                    '&:hover': {
-                      color: isDarkMode ? '#fff' : '#000',
-                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                    },
-                  }}
-                >
-                  <CloseIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Box>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              style={{ display: 'none' }}
-              accept="image/*,.pdf,.doc,.docx,.txt"
-            />
-          </Box>
+            Start by filling your details or attach your CV/Resume
+          </Button>
         </Box>
       </Container>
 

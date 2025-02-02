@@ -186,25 +186,71 @@ const Landing = () => {
         >
           <Typography
             variant="h1"
-            component="h1"
             sx={{
-              color: 'text.primary',
-              mb: { xs: 3, md: 4 },
-              position: 'relative',
-              zIndex: 1,
-              fontSize: {
-                xs: '40px',
-                sm: '60px',
-                md: '80px',
-              },
-              fontWeight: 400,
-              lineHeight: 1.1,
-              letterSpacing: '-0.02em',
+              fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+              fontWeight: 700,
+              mb: 2,
+              background: 'linear-gradient(45deg, #007FFF, #0059B2)',
+              backgroundClip: 'text',
+              textFillColor: 'transparent',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
             }}
           >
-            Hi, how can I help you today?
+            Welcome to Your AI Assistant
           </Typography>
-
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+              fontWeight: 400,
+              color: 'text.secondary',
+              mb: 4,
+              maxWidth: '800px',
+              textAlign: 'center',
+            }}
+          >
+            Get started by filling out your details or uploading your resume. Let's begin your journey!
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, mb: 8 }}>
+            <Button
+              variant="contained"
+              onClick={() => navigate('/signup')}
+              sx={{
+                py: 1.5,
+                px: 4,
+                borderRadius: 2,
+                fontSize: '1.1rem',
+                textTransform: 'none',
+                background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
+                },
+              }}
+            >
+              Get Started
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/signin')}
+              sx={{
+                py: 1.5,
+                px: 4,
+                borderRadius: 2,
+                fontSize: '1.1rem',
+                textTransform: 'none',
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)',
+                },
+              }}
+            >
+              Sign In
+            </Button>
+          </Box>
           <Box
             component="form"
             onSubmit={handleSubmit}
@@ -345,7 +391,7 @@ const Landing = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything... 'What's the meaning of life?' 🤔"
+                placeholder="Ask me anything... 'What's the meaning of life?' "
                 variant="outlined"
                 multiline
                 maxRows={4}
