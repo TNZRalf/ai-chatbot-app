@@ -7,10 +7,14 @@ import io
 import logging
 import json
 import re
-import os
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logger
 logger = logging.getLogger("resume_parser")
