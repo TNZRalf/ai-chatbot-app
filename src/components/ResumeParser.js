@@ -1,48 +1,46 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Container,
-  Paper,
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useTheme } from '@mui/material/styles';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import AddIcon from '@mui/icons-material/Add';
+import PreviewIcon from '@mui/icons-material/Preview';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import { 
+  Box, 
+  Button, 
+  Grid, 
+  TextField, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogContentText, 
+  DialogActions,
   Typography,
-  TextField,
-  Button,
-  IconButton,
+  Paper,
   Chip,
-  Autocomplete,
-  Grid,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  alpha,
+  Container,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress,
-  Alert,
-  alpha,
-  useTheme,
-  Snackbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  IconButton,
+  Autocomplete
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  CloudUpload as CloudUploadIcon,
-  Preview as PreviewIcon,
-  Edit as EditIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
-import { useDropzone } from 'react-dropzone';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
+
 import Logo from './Logo';
 import Sidebar from './Sidebar';
 
-// Common skills for autocomplete
 const commonSkills = [
   'JavaScript', 'Python', 'Java', 'React', 'Node.js', 'SQL',
   'Project Management', 'Leadership', 'Communication',
@@ -54,29 +52,53 @@ const degrees = ['High School', 'Associate', "Bachelor's", "Master's", 'PhD', 'O
 
 const WorkExperienceForm = ({ experience, onUpdate, onDelete }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isPresent, setIsPresent] = useState(experience.endDate === 'Present' || !experience.endDate);
+  const theme = useTheme();
 
-  const handleDelete = () => {
-    setDeleteDialogOpen(false);
-    onDelete(experience.id);
+  useEffect(() => {
+    // If end date is not set, automatically set it to Present
+    if (!experience.endDate) {
+      onUpdate({
+        ...experience,
+        endDate: 'Present'
+      });
+    }
+  }, [experience.endDate]);
+
+  const handleDateChange = (field, date) => {
+    if (field === 'endDate' && isPresent) {
+      return; // Don't update if "Present" is selected
+    }
+    onUpdate({
+      ...experience,
+      [field]: date ? date.toISOString().split('T')[0] : ''
+    });
+  };
+
+  const togglePresent = () => {
+    setIsPresent(!isPresent);
+    onUpdate({
+      ...experience,
+      endDate: !isPresent ? 'Present' : ''
+    });
+  };
+
+  // Helper function to parse date string
+  const parseDate = (dateStr) => {
+    if (!dateStr || dateStr === 'Present') return null;
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
   };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2,
-        mb: 2,
-        bgcolor: (theme) => alpha(theme.palette.background.paper, 0.6),
-        borderRadius: 2,
-      }}
-    >
+    <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Job Title"
-            value={experience.title}
-            onChange={(e) => onUpdate({ ...experience, title: e.target.value })}
+            label="Position"
+            value={experience.position || ''}
+            onChange={e => onUpdate({ ...experience, position: e.target.value })}
             variant="outlined"
           />
         </Grid>
@@ -84,8 +106,8 @@ const WorkExperienceForm = ({ experience, onUpdate, onDelete }) => {
           <TextField
             fullWidth
             label="Company"
-            value={experience.company}
-            onChange={(e) => onUpdate({ ...experience, company: e.target.value })}
+            value={experience.company || ''}
+            onChange={e => onUpdate({ ...experience, company: e.target.value })}
             variant="outlined"
           />
         </Grid>
@@ -93,21 +115,57 @@ const WorkExperienceForm = ({ experience, onUpdate, onDelete }) => {
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Start Date"
-              value={experience.startDate}
-              onChange={(date) => onUpdate({ ...experience, startDate: date })}
-              slotProps={{ textField: { fullWidth: true } }}
+              value={parseDate(experience.startDate)}
+              onChange={(date) => handleDateChange('startDate', date)}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined"
+                }
+              }}
+              format="MMM yyyy"
             />
           </LocalizationProvider>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="End Date"
-              value={experience.endDate}
-              onChange={(date) => onUpdate({ ...experience, endDate: date })}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </LocalizationProvider>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="End Date"
+                value={!isPresent ? parseDate(experience.endDate) : null}
+                onChange={(date) => handleDateChange('endDate', date)}
+                disabled={isPresent}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    variant: "outlined",
+                    sx: {
+                      '& .MuiInputBase-root': {
+                        color: 'inherit',
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(0, 0, 0, 0.23)',
+                      },
+                    }
+                  }
+                }}
+                format="MMM yyyy"
+              />
+            </LocalizationProvider>
+            <Button
+              variant={isPresent ? "contained" : "outlined"}
+              onClick={togglePresent}
+              size="small"
+              sx={{ 
+                minWidth: '100px',
+                height: '56px',
+                color: isPresent ? 'white' : 'primary.main',
+                borderColor: 'primary.main'
+              }}
+            >
+              Present
+            </Button>
+          </Box>
         </Grid>
         <Grid item xs={12}>
           <TextField
@@ -115,18 +173,18 @@ const WorkExperienceForm = ({ experience, onUpdate, onDelete }) => {
             multiline
             rows={4}
             label="Description"
-            value={experience.description}
-            onChange={(e) => onUpdate({ ...experience, description: e.target.value })}
+            value={experience.highlights.join('\n')}
+            onChange={e => onUpdate({ ...experience, highlights: e.target.value.split('\n').filter(h => h.trim()) })}
             variant="outlined"
-            helperText="Use action verbs like 'Led', 'Managed', 'Developed' to describe your achievements"
+            placeholder="Enter each achievement on a new line"
           />
         </Grid>
         <Grid item xs={12}>
-          <Button
-            startIcon={<DeleteIcon />}
-            onClick={() => setDeleteDialogOpen(true)}
-            color="error"
-            variant="outlined"
+          <Button 
+            startIcon={<DeleteIcon />} 
+            onClick={() => setDeleteDialogOpen(true)} 
+            color="error" 
+            variant="outlined" 
             size="small"
           >
             Remove Experience
@@ -134,134 +192,150 @@ const WorkExperienceForm = ({ experience, onUpdate, onDelete }) => {
         </Grid>
       </Grid>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-dialog-title"
-        PaperProps={{
-          sx: {
-            bgcolor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
-            backdropFilter: 'blur(10px)',
-            borderRadius: 3,
-            boxShadow: (theme) => `0 8px 32px ${alpha(theme.palette.common.black, 0.2)}`,
-          },
-        }}
-      >
-        <DialogTitle
-          id="delete-dialog-title"
-          sx={{
-            background: (theme) =>
-              `linear-gradient(45deg, ${theme.palette.error.main}, ${theme.palette.error.dark})`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 700,
-            pb: 1,
-          }}
-        >
-          Confirm Delete
-        </DialogTitle>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" sx={{ color: 'text.primary' }}>
-            Are you sure you want to delete this work experience? This action cannot be undone.
-          </Typography>
+          <DialogContentText>
+            Are you sure you want to remove this experience?
+          </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 1 }}>
-          <Button
-            onClick={() => setDeleteDialogOpen(false)}
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                color: 'text.primary',
-                bgcolor: (theme) => alpha(theme.palette.common.white, 0.1),
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDelete}
-            variant="contained"
-            sx={{
-              bgcolor: 'error.main',
-              color: 'white',
-              '&:hover': {
-                bgcolor: 'error.dark',
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            onDelete(experience.id);
+            setDeleteDialogOpen(false);
+          }} color="error" autoFocus>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Box>
   );
 };
 
 const EducationForm = ({ education, onUpdate, onDelete }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isPresent, setIsPresent] = useState(education.endDate === 'Present' || !education.endDate);
+  const theme = useTheme();
 
-  const handleDelete = () => {
-    setDeleteDialogOpen(false);
-    onDelete(education.id);
+  useEffect(() => {
+    // If end date is not set, automatically set it to Present
+    if (!education.endDate) {
+      onUpdate({
+        ...education,
+        endDate: 'Present'
+      });
+    }
+  }, [education.endDate]);
+
+  const handleDateChange = (field, date) => {
+    if (field === 'endDate' && isPresent) {
+      return; // Don't update if "Present" is selected
+    }
+    onUpdate({
+      ...education,
+      [field]: date ? date.toISOString().split('T')[0] : ''
+    });
+  };
+
+  const togglePresent = () => {
+    setIsPresent(!isPresent);
+    onUpdate({
+      ...education,
+      endDate: !isPresent ? 'Present' : ''
+    });
+  };
+
+  // Helper function to parse date string
+  const parseDate = (dateStr) => {
+    if (!dateStr || dateStr === 'Present') return null;
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
   };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2,
-        mb: 2,
-        bgcolor: (theme) => alpha(theme.palette.background.paper, 0.6),
-        borderRadius: 2,
-      }}
-    >
+    <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth variant="outlined">
-            <InputLabel>Degree</InputLabel>
-            <Select
-              value={education.degree}
-              onChange={(e) => onUpdate({ ...education, degree: e.target.value })}
-              label="Degree"
-            >
-              {degrees.map((degree) => (
-                <MenuItem key={degree} value={degree}>
-                  {degree}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             label="Institution"
-            value={education.institution}
-            onChange={(e) => onUpdate({ ...education, institution: e.target.value })}
+            value={education.institution || ''}
+            onChange={e => onUpdate({ ...education, institution: e.target.value })}
             variant="outlined"
           />
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Graduation Year"
-            type="number"
-            value={education.graduationYear}
-            onChange={(e) => onUpdate({ ...education, graduationYear: e.target.value })}
+            label="Degree"
+            value={education.degree || ''}
+            onChange={e => onUpdate({ ...education, degree: e.target.value })}
             variant="outlined"
-            InputProps={{ inputProps: { min: 1900, max: 2100 } }}
           />
         </Grid>
+        <Grid item xs={12} sm={6}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Start Date"
+              value={parseDate(education.startDate)}
+              onChange={(date) => handleDateChange('startDate', date)}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined"
+                }
+              }}
+              format="MMM yyyy"
+            />
+          </LocalizationProvider>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="End Date"
+                value={!isPresent ? parseDate(education.endDate) : null}
+                onChange={(date) => handleDateChange('endDate', date)}
+                disabled={isPresent}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    variant: "outlined",
+                    sx: {
+                      '& .MuiInputBase-root': {
+                        color: 'inherit',
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(0, 0, 0, 0.23)',
+                      },
+                    }
+                  }
+                }}
+                format="MMM yyyy"
+              />
+            </LocalizationProvider>
+            <Button
+              variant={isPresent ? "contained" : "outlined"}
+              onClick={togglePresent}
+              size="small"
+              sx={{ 
+                minWidth: '100px',
+                height: '56px',
+                color: isPresent ? 'white' : 'primary.main',
+                borderColor: 'primary.main'
+              }}
+            >
+              Present
+            </Button>
+          </Box>
+        </Grid>
         <Grid item xs={12}>
-          <Button
-            startIcon={<DeleteIcon />}
-            onClick={() => setDeleteDialogOpen(true)}
-            color="error"
-            variant="outlined"
+          <Button 
+            startIcon={<DeleteIcon />} 
+            onClick={() => setDeleteDialogOpen(true)} 
+            color="error" 
+            variant="outlined" 
             size="small"
           >
             Remove Education
@@ -269,213 +343,279 @@ const EducationForm = ({ education, onUpdate, onDelete }) => {
         </Grid>
       </Grid>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-dialog-title"
-        PaperProps={{
-          sx: {
-            bgcolor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
-            backdropFilter: 'blur(10px)',
-            borderRadius: 3,
-            boxShadow: (theme) => `0 8px 32px ${alpha(theme.palette.common.black, 0.2)}`,
-          },
-        }}
-      >
-        <DialogTitle
-          id="delete-dialog-title"
-          sx={{
-            background: (theme) =>
-              `linear-gradient(45deg, ${theme.palette.error.main}, ${theme.palette.error.dark})`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 700,
-            pb: 1,
-          }}
-        >
-          Confirm Delete
-        </DialogTitle>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" sx={{ color: 'text.primary' }}>
-            Are you sure you want to delete this education entry? This action cannot be undone.
-          </Typography>
+          <DialogContentText>
+            Are you sure you want to remove this education?
+          </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 1 }}>
-          <Button
-            onClick={() => setDeleteDialogOpen(false)}
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                color: 'text.primary',
-                bgcolor: (theme) => alpha(theme.palette.common.white, 0.1),
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDelete}
-            variant="contained"
-            sx={{
-              bgcolor: 'error.main',
-              color: 'white',
-              '&:hover': {
-                bgcolor: 'error.dark',
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            onDelete(education.id);
+            setDeleteDialogOpen(false);
+          }} color="error" autoFocus>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Box>
+  );
+};
+
+const PersonalInfoForm = ({ personalInfo, onUpdate }) => {
+  return (
+    <Box sx={{ mb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>Personal Information</Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Full Name"
+            value={personalInfo.name}
+            onChange={e => onUpdate({ ...personalInfo, name: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Email"
+            value={personalInfo.email}
+            onChange={e => onUpdate({ ...personalInfo, email: e.target.value })}
+            variant="outlined"
+            type="email"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Phone"
+            value={personalInfo.phone}
+            onChange={e => onUpdate({ ...personalInfo, phone: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Location"
+            value={personalInfo.location}
+            onChange={e => onUpdate({ ...personalInfo, location: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="LinkedIn URL"
+            value={personalInfo.linkedin}
+            onChange={e => onUpdate({ ...personalInfo, linkedin: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="GitHub URL"
+            value={personalInfo.github}
+            onChange={e => onUpdate({ ...personalInfo, github: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Professional Summary"
+            value={personalInfo.summary}
+            onChange={e => onUpdate({ ...personalInfo, summary: e.target.value })}
+            variant="outlined"
+            placeholder="Write a brief summary of your professional background, key qualifications, and career objectives..."
+          />
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+const LanguageForm = ({ language, onUpdate, onDelete }) => {
+  const proficiencyLevels = ['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'];
+
+  return (
+    <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Language"
+            value={language.name}
+            onChange={e => onUpdate({ ...language, name: e.target.value })}
+            variant="outlined"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth variant="outlined">
+            <InputLabel>Proficiency</InputLabel>
+            <Select
+              value={language.proficiency}
+              onChange={e => onUpdate({ ...language, proficiency: e.target.value })}
+              label="Proficiency"
+            >
+              {proficiencyLevels.map(level => (
+                <MenuItem key={level} value={level}>
+                  {level}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12}>
+          <Button 
+            startIcon={<DeleteIcon />} 
+            onClick={onDelete} 
+            color="error" 
+            variant="outlined" 
+            size="small"
+          >
+            Remove Language
+          </Button>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 
 const ResumeParser = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     phone: '',
+    linkedin: '',
+    github: '',
+    location: '',
+    summary: ''
   });
-  const [skills, setSkills] = useState([]);
-  const [workExperience, setWorkExperience] = useState([]);
   const [education, setEducation] = useState([]);
-  const [file, setFile] = useState(null);
+  const [workExperience, setWorkExperience] = useState([]);
+  const [skills, setSkills] = useState([]);
+  const [languages, setLanguages] = useState([]);
   const [parsing, setParsing] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const theme = useTheme();
-  const navigate = useNavigate();
+  const [snackbar, setSnackbar] = useState({ 
+    open: false, 
+    message: '', 
+    severity: 'info' 
+  });
 
-  const handleDrop = useCallback((acceptedFiles) => {
-    const uploadedFile = acceptedFiles[0];
-    if (uploadedFile) {
-      if (uploadedFile.size > 5 * 1024 * 1024) {
-        setSnackbar({
-          open: true,
-          message: 'File size must be less than 5MB',
-          severity: 'error',
-        });
-        return;
-      }
-      if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(uploadedFile.type)) {
-        setSnackbar({
-          open: true,
-          message: 'Please upload a PDF or DOCX file',
-          severity: 'error',
-        });
-        return;
-      }
-      setFile(uploadedFile);
-      handleParseResume(uploadedFile);
-    }
-  }, []);
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
 
   const handleParseResume = async (uploadedFile) => {
     setParsing(true);
+    setSnackbar({ 
+      open: false, 
+      message: '', 
+      severity: 'info' 
+    });
+    
     const formData = new FormData();
     formData.append('file', uploadedFile);
 
     try {
+      console.log('Sending request to backend...', uploadedFile.name);
       const response = await fetch('http://localhost:8000/parse-resume', {
         method: 'POST',
         body: formData,
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', [...response.headers.entries()]);
+
       if (!response.ok) {
-        throw new Error('Failed to parse resume');
+        let errorMessage = 'Failed to parse resume';
+        try {
+          const errorText = await response.text();
+          console.log('Error response text:', errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.detail || errorMessage;
+          } catch (parseError) {
+            errorMessage = errorText || response.statusText || errorMessage;
+          }
+        } catch (e) {
+          console.error('Error reading response:', e);
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
 
       const data = await response.json();
-      
-      // Extract name from email or first part of email
-      const emailName = data.personal_info.email ? data.personal_info.email.split('@')[0] : '';
-      const [firstName = '', lastName = ''] = emailName.split('.');
-      
+      console.log('Successfully parsed data:', data);
+
       // Update personal information
       setPersonalInfo({
-        firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1),
-        lastName: lastName.charAt(0).toUpperCase() + lastName.slice(1),
-        email: data.personal_info.email || '',
-        phone: data.personal_info.phone || '',
+        name: data.personal_info?.name || '',
+        email: data.personal_info?.email || '',
+        phone: data.personal_info?.phone || '',
+        linkedin: data.personal_info?.linkedin || '',
+        github: data.personal_info?.github || '',
+        location: data.personal_info?.location || '',
+        summary: data.personal_info?.summary || ''
       });
-      
+
+      // Update education with proper date handling
+      const formattedEducation = (data.education || []).map((edu, index) => ({
+        id: index,
+        institution: edu.institution?.trim() || '',
+        degree: edu.degree?.trim() || '',
+        startDate: edu.startDate || '',
+        endDate: edu.endDate || 'Present'  // Default to Present if not set
+      }));
+      setEducation(formattedEducation);
+
+      // Update work experience with proper date handling
+      const formattedExperience = (data.experience || []).map((exp, index) => ({
+        id: index,
+        position: exp.position?.trim() || '',
+        company: exp.company?.trim() || '',
+        startDate: exp.startDate || '',
+        endDate: exp.endDate || 'Present',  // Default to Present if not set
+        highlights: (exp.highlights || []).map(h => h.trim()).filter(h => h && h.length > 0)
+      }));
+      setWorkExperience(formattedExperience);
+
       // Update skills
-      if (data.skills && data.skills.length > 0) {
-        setSkills(data.skills.map(skill => skill.charAt(0).toUpperCase() + skill.slice(1)));
-      }
-      
-      // Update work experience
-      if (data.work_experience && data.work_experience.length > 0) {
-        const formattedExperience = data.work_experience.map((exp, index) => {
-          // Try to extract dates from the description
-          const datesMatch = exp.dates ? exp.dates.match(/(\d{4})\s*-\s*(\d{4}|present)/i) : null;
-          let startDate = null;
-          let endDate = null;
-          
-          if (datesMatch) {
-            startDate = new Date(datesMatch[1], 0);
-            endDate = datesMatch[2].toLowerCase() === 'present' 
-              ? new Date() 
-              : new Date(datesMatch[2], 11);
-          }
+      setSkills(data.skills || []);
 
-          // Try to extract position from description
-          const positionMatch = exp.description ? exp.description.match(/(?:as|position|title|role):\s*([^,.\n]+)/i) : null;
-          const position = positionMatch ? positionMatch[1].trim() : '';
-
-          return {
-            id: index,
-            company: exp.company || '',
-            position: position,
-            startDate: startDate,
-            endDate: endDate,
-            description: exp.description || '',
-          };
-        });
-
-        setWorkExperience(formattedExperience);
-      }
-      
-      // Update education
-      if (data.education && data.education.length > 0) {
-        const formattedEducation = data.education.map((edu, index) => {
-          // Try to extract graduation date
-          const yearMatch = edu.description ? edu.description.match(/\b(19|20)\d{2}\b/) : null;
-          const graduationDate = yearMatch ? new Date(yearMatch[0], 5) : null;
-
-          // Try to extract field of study
-          const fieldMatch = edu.degree ? edu.degree.match(/(?:in|of)\s+([^,.\n]+)/i) : null;
-          const field = fieldMatch ? fieldMatch[1].trim() : '';
-
-          return {
-            id: index,
-            institution: edu.institution || '',
-            degree: edu.degree || '',
-            field: field,
-            graduationDate: graduationDate,
-          };
-        });
-
-        setEducation(formattedEducation);
-      }
+      // Update languages
+      const formattedLanguages = (data.languages || []).map((lang, index) => ({
+        id: index,
+        name: lang.name?.trim() || '',
+        proficiency: lang.proficiency?.trim() || ''
+      }));
+      setLanguages(formattedLanguages);
 
       setSnackbar({
         open: true,
-        message: 'Resume parsed successfully! Please review and edit the extracted information.',
-        severity: 'success',
+        message: 'Resume parsed successfully! Please review the extracted information.',
+        severity: 'success'
       });
+
     } catch (error) {
       console.error('Error parsing resume:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to parse resume. Please try again or fill in the information manually.',
-        severity: 'error',
+        message: error.message || 'Error parsing resume. Please try again.',
+        severity: 'error'
       });
     } finally {
       setParsing(false);
@@ -483,42 +623,143 @@ const ResumeParser = () => {
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleDrop,
+    onDrop: useCallback(acceptedFiles => {
+      const file = acceptedFiles[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          setSnackbar({
+            open: true,
+            message: 'File size must be less than 5MB',
+            severity: 'error'
+          });
+          return;
+        }
+        setParsing(true);
+        setSnackbar({ 
+          open: false, 
+          message: '', 
+          severity: 'info' 
+        });
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('http://localhost:8000/parse-resume', {
+          method: 'POST',
+          body: formData,
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+          },
+        })
+        .then(response => {
+          if (!response.ok) {
+            let errorMessage = 'Failed to parse resume';
+            try {
+              const errorData = response.json();
+              errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+              errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Parsed data:', data);
+
+          // Update personal information
+          setPersonalInfo({
+            name: data.personal_info?.name || '',
+            email: data.personal_info?.email || '',
+            phone: data.personal_info?.phone || '',
+            linkedin: data.personal_info?.linkedin || '',
+            github: data.personal_info?.github || '',
+            location: data.personal_info?.location || '',
+            summary: data.personal_info?.summary || ''
+          });
+
+          // Update education with proper date handling
+          const formattedEducation = (data.education || []).map((edu, index) => ({
+            id: index,
+            institution: edu.institution?.trim() || '',
+            degree: edu.degree?.trim() || '',
+            startDate: edu.startDate || '',
+            endDate: edu.endDate || 'Present'  // Default to Present if not set
+          }));
+          setEducation(formattedEducation);
+
+          // Update work experience with proper date handling
+          const formattedExperience = (data.experience || []).map((exp, index) => ({
+            id: index,
+            position: exp.position?.trim() || '',
+            company: exp.company?.trim() || '',
+            startDate: exp.startDate || '',
+            endDate: exp.endDate || 'Present',  // Default to Present if not set
+            highlights: (exp.highlights || []).map(h => h.trim()).filter(h => h && h.length > 0)
+          }));
+          setWorkExperience(formattedExperience);
+
+          // Update skills
+          setSkills(data.skills || []);
+
+          // Update languages
+          const formattedLanguages = (data.languages || []).map((lang, index) => ({
+            id: index,
+            name: lang.name?.trim() || '',
+            proficiency: lang.proficiency?.trim() || ''
+          }));
+          setLanguages(formattedLanguages);
+
+          setSnackbar({
+            open: true,
+            message: 'Resume parsed successfully! Please review the extracted information.',
+            severity: 'success'
+          });
+        })
+        .catch(error => {
+          console.error('Error parsing resume:', error);
+          setSnackbar({
+            open: true,
+            message: error.message || 'Error parsing resume. Please try again.',
+            severity: 'error'
+          });
+        })
+        .finally(() => {
+          setParsing(false);
+        });
+      }
+    }, []),
     accept: {
       'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
     },
     maxSize: 5 * 1024 * 1024,
-    multiple: false,
+    multiple: false
   });
 
   const addWorkExperience = () => {
-    setWorkExperience([
-      ...workExperience,
-      {
-        id: Date.now(),
-        title: '',
-        company: '',
-        startDate: null,
-        endDate: null,
-        description: '',
-      },
-    ]);
+    setWorkExperience([...workExperience, {
+      id: Date.now(),
+      position: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      highlights: []
+    }]);
   };
 
   const addEducation = () => {
-    setEducation([
-      ...education,
-      {
-        id: Date.now(),
-        degree: '',
-        institution: '',
-        graduationYear: '',
-      },
-    ]);
+    setEducation([...education, {
+      id: Date.now(),
+      institution: '',
+      degree: '',
+      startDate: '',
+      endDate: ''
+    }]);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    // Here you can add logic to save the resume data
     setSnackbar({
       open: true,
       message: 'Resume data saved successfully!',
@@ -527,56 +768,45 @@ const ResumeParser = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Logo - Fixed position */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 20,
-          left: 32,
-          cursor: 'pointer',
-          zIndex: 1200, // Above sidebar
-        }}
-        onClick={() => navigate('/home')}
-      >
+    <Box sx={{ display: 'flex' }}>
+      {/* Logo */}
+      <Box sx={{
+        position: 'fixed',
+        top: 20,
+        left: 32,
+        cursor: 'pointer',
+        zIndex: 1200
+      }} onClick={() => navigate('/home')}>
         <Logo />
       </Box>
 
+      {/* Sidebar */}
       <Sidebar />
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minHeight: '100vh',
-          bgcolor: 'background.default',
-          position: 'relative',
-          pt: 2,
-        }}
-      >
+
+      {/* Main Content */}
+      <Box component="main" sx={{
+        flexGrow: 1,
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        position: 'relative',
+        pt: 2
+      }}>
         <Container maxWidth="lg" sx={{ py: 8, mt: 4 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              bgcolor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
-              backdropFilter: 'blur(10px)',
-              borderRadius: 3,
-              position: 'relative',
-            }}
-          >
+          <Paper elevation={3} sx={{
+            p: 4,
+            bgcolor: theme => alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.85 : 0.95),
+            backdropFilter: 'blur(10px)',
+            borderRadius: 3
+          }}>
             {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  background: (theme) =>
-                    `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 700,
-                }}
-              >
+              <Typography variant="h4" sx={{
+                background: theme => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 700
+              }}>
                 Resume Parser
               </Typography>
               <Button
@@ -590,245 +820,220 @@ const ResumeParser = () => {
                   textTransform: 'none',
                   fontSize: '1rem',
                   fontWeight: 500,
-                  background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                  boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  background: theme => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                  boxShadow: theme => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
                   '&:hover': {
-                    background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                    background: theme => `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
                     transform: 'translateY(-1px)',
-                    boxShadow: (theme) => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
-                  },
+                    boxShadow: theme => `0 6px 16px ${alpha(theme.palette.primary.main, 0.3)}`
+                  }
                 }}
               >
                 Save Resume
               </Button>
             </Box>
 
-            {/* File Upload Section */}
-            <Grid item xs={12}>
-              <Paper
-                {...getRootProps()}
-                elevation={0}
-                sx={{
+            {/* File Upload */}
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Paper {...getRootProps()} elevation={0} sx={{
                   p: 3,
                   mb: 3,
                   border: '2px dashed',
                   borderColor: isDragActive ? 'primary.main' : 'divider',
                   borderRadius: 2,
-                  bgcolor: (theme) => alpha(theme.palette.background.paper, 0.6),
+                  bgcolor: theme => alpha(theme.palette.background.paper, 0.6),
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
                     borderColor: 'primary.main',
                     transform: 'translateY(-2px)',
-                    boxShadow: (theme) => `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
-                  },
-                }}
-              >
-                <input {...getInputProps()} />
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 2,
-                  }}
-                >
-                  <CloudUploadIcon
-                    sx={{
+                    boxShadow: theme => `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`
+                  }
+                }}>
+                  <input {...getInputProps()} />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <CloudUploadIcon sx={{
                       fontSize: 48,
-                      color: isDragActive ? 'primary.main' : 'text.secondary',
-                    }}
-                  />
-                  <Typography
-                    variant="h6"
-                    sx={{
+                      color: isDragActive ? 'primary.main' : 'text.secondary'
+                    }} />
+                    <Typography variant="h6" sx={{
                       color: isDragActive ? 'primary.main' : 'text.primary',
-                      textAlign: 'center',
-                    }}
+                      textAlign: 'center'
+                    }}>
+                      {isDragActive ? 'Drop your resume here' : 'Drag and drop your resume here, or click to select'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                      Supports PDF and DOCX files (max 5MB)
+                    </Typography>
+                    {parsing && (
+                      <CircularProgress size={24} sx={{ color: 'primary.main' }} />
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Status Messages */}
+              <AnimatePresence>
+                {snackbar.open && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
                   >
-                    {isDragActive
-                      ? 'Drop your resume here'
-                      : 'Drag and drop your resume here, or click to select'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" textAlign="center">
-                    Supports PDF and DOCX files (max 5MB)
-                  </Typography>
-                  {file && (
-                    <Chip
-                      label={file.name}
-                      onDelete={() => setFile(null)}
-                      color="primary"
+                    <Alert
+                      severity={snackbar.severity}
+                      sx={{ mb: 2 }}
+                      onClose={handleCloseSnackbar}
+                    >
+                      {snackbar.message}
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Personal Information */}
+              <Grid item xs={12}>
+                <PersonalInfoForm
+                  personalInfo={personalInfo}
+                  onUpdate={updated => setPersonalInfo(updated)}
+                />
+              </Grid>
+
+              {/* Skills */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>
+                  Skills & Languages
+                </Typography>
+                <Autocomplete
+                  multiple
+                  options={commonSkills}
+                  value={skills}
+                  onChange={(_, newValue) => setSkills(newValue)}
+                  freeSolo
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        key={option}
+                        label={option}
+                        {...getTagProps({ index })}
+                        sx={{
+                          bgcolor: theme => alpha(
+                            option.includes('Language') ? theme.palette.secondary.main : theme.palette.primary.main,
+                            0.1
+                          )
+                        }}
+                      />
+                    ))
+                  }
+                  renderInput={params => (
+                    <TextField
+                      {...params}
                       variant="outlined"
-                      icon={<PreviewIcon />}
+                      placeholder="Add skills..."
+                      helperText="Type or select skills from the list"
                     />
                   )}
-                  {parsing && (
-                    <CircularProgress
-                      size={24}
-                      sx={{
-                        color: 'primary.main',
+                />
+              </Grid>
+
+              {/* Languages Section */}
+              <Grid item xs={12}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Languages
+                  </Typography>
+                  {languages.map((language, index) => (
+                    <LanguageForm
+                      key={index}
+                      language={language}
+                      onUpdate={updatedLanguage => {
+                        const newLanguages = [...languages];
+                        newLanguages[index] = updatedLanguage;
+                        setLanguages(newLanguages);
+                      }}
+                      onDelete={() => {
+                        const newLanguages = languages.filter((_, i) => i !== index);
+                        setLanguages(newLanguages);
                       }}
                     />
-                  )}
-                </Box>
-              </Paper>
-            </Grid>
-
-            {/* Status Messages */}
-            <AnimatePresence>
-              {snackbar.open && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <Alert
-                    severity={snackbar.severity}
-                    sx={{ mb: 2 }}
-                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                  ))}
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={() => setLanguages([...languages, { name: '', proficiency: '' }])}
+                    variant="outlined"
+                    sx={{ mt: 2 }}
                   >
-                    {snackbar.message}
-                  </Alert>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    Add Language
+                  </Button>
+                </Box>
+              </Grid>
 
-            {/* Personal Information */}
-            <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
-              Personal Information
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={personalInfo.firstName}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, firstName: e.target.value })}
-                  variant="outlined"
-                />
+              {/* Work Experience */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">Work Experience</Typography>
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={addWorkExperience}
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Add Experience
+                  </Button>
+                </Box>
+                {workExperience.map(exp => (
+                  <WorkExperienceForm
+                    key={exp.id}
+                    experience={exp}
+                    onUpdate={updated => setWorkExperience(workExperience.map(e => e.id === updated.id ? updated : e))}
+                    onDelete={id => setWorkExperience(workExperience.filter(e => e.id !== id))}
+                  />
+                ))}
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={personalInfo.lastName}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, lastName: e.target.value })}
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={personalInfo.email}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  value={personalInfo.phone}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
-                  variant="outlined"
-                />
+
+              {/* Education */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">Education</Typography>
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={addEducation}
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Add Education
+                  </Button>
+                </Box>
+                {education.map(edu => (
+                  <EducationForm
+                    key={edu.id}
+                    education={edu}
+                    onUpdate={updated => setEducation(education.map(e => e.id === updated.id ? updated : e))}
+                    onDelete={id => setEducation(education.filter(e => e.id !== id))}
+                  />
+                ))}
               </Grid>
             </Grid>
-
-            {/* Skills */}
-            <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
-              Skills
-            </Typography>
-            <Autocomplete
-              multiple
-              options={commonSkills}
-              value={skills}
-              onChange={(_, newValue) => setSkills(newValue)}
-              freeSolo
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    label={option}
-                    {...getTagProps({ index })}
-                    sx={{
-                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                      '& .MuiChip-deleteIcon': {
-                        color: 'primary.main',
-                      },
-                    }}
-                  />
-                ))
-              }
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  placeholder="Add skills..."
-                  helperText="Type or select skills from the list"
-                />
-              )}
-              sx={{ mb: 4 }}
-            />
-
-            {/* Work Experience */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Work Experience</Typography>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={addWorkExperience}
-                variant="outlined"
-                color="primary"
-              >
-                Add Experience
-              </Button>
-            </Box>
-            {workExperience.map((exp) => (
-              <WorkExperienceForm
-                key={exp.id}
-                experience={exp}
-                onUpdate={(updated) =>
-                  setWorkExperience(workExperience.map((e) => (e.id === updated.id ? updated : e)))
-                }
-                onDelete={(id) => setWorkExperience(workExperience.filter((e) => e.id !== id))}
-              />
-            ))}
-
-            {/* Education */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 4 }}>
-              <Typography variant="h6">Education</Typography>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={addEducation}
-                variant="outlined"
-                color="primary"
-              >
-                Add Education
-              </Button>
-            </Box>
-            {education.map((edu) => (
-              <EducationForm
-                key={edu.id}
-                education={edu}
-                onUpdate={(updated) =>
-                  setEducation(education.map((e) => (e.id === updated.id ? updated : e)))
-                }
-                onDelete={(id) => setEducation(education.filter((e) => e.id !== id))}
-              />
-            ))}
           </Paper>
         </Container>
       </Box>
-      {/* Save Success/Error Snackbar */}
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

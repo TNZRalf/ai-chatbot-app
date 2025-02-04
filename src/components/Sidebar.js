@@ -60,8 +60,8 @@ const Sidebar = () => {
   const { sidebarOpen, setSidebarOpen } = context;
 
   const menuItems = [
-    { text: 'Calendar AI', icon: <CalendarIcon />, description: 'Smart calendar management powered by AI' },
-    { text: 'To-Do List', icon: <TodoIcon />, description: 'Intelligent task organization and tracking' },
+    { text: 'CV/Resume', icon: <CalendarIcon />, description: 'add / edit your resume', path: '/resume-parser' },
+    { text: 'To-Do List', icon: <TodoIcon />, description: 'Intelligent task organization and tracking',path: '/to-do-list'},
     { 
       text: 'Settings', 
       icon: <SettingsIcon />, 

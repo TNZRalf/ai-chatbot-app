@@ -10,21 +10,25 @@ import re
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Configure logger
 logger = logging.getLogger("resume_parser")
 logging.basicConfig(level=logging.INFO)
 
-# Initialize Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+# Initialize FastAPI app
+app = FastAPI()
 
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React app's URL
+    allow_credentials=False,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Initialize Gemini
+GEMINI_API_KEY = "AIzaSyDlQ3xWeUXEXLBJPpnpCxnckGD_yzXg8s4"
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Use faster model and optimize configuration
@@ -37,16 +41,6 @@ model = genai.GenerativeModel(
     }
 )
 
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Updated Pydantic Models with Languages
 class PersonalInfo(BaseModel):
     name: str = ""
@@ -55,6 +49,7 @@ class PersonalInfo(BaseModel):
     linkedin: str = ""
     github: str = ""
     location: str = ""
+    summary: str = ""
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -64,26 +59,30 @@ class PersonalInfo(BaseModel):
             phone=data.get("phone", "") or "",
             linkedin=data.get("linkedin", "") or "",
             github=data.get("github", "") or "",
-            location=data.get("location", "") or ""
+            location=data.get("location", "") or "",
+            summary=data.get("summary", "") or ""
         )
 
 class Education(BaseModel):
     institution: str = ""
     degree: str = ""
-    dates: str = ""
+    startDate: str = ""
+    endDate: str = ""
 
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
             institution=data.get("institution", "") or "",
             degree=data.get("degree", "") or "",
-            dates=data.get("dates", "") or ""
+            startDate=data.get("startDate", "") or "",
+            endDate=data.get("endDate", "") or ""
         )
 
 class Experience(BaseModel):
     position: str = ""
     company: str = ""
-    dates: str = ""
+    startDate: str = ""
+    endDate: str = ""
     highlights: List[str] = []
 
     @classmethod
@@ -91,8 +90,20 @@ class Experience(BaseModel):
         return cls(
             position=data.get("position", "") or "",
             company=data.get("company", "") or "",
-            dates=data.get("dates", "") or "",
+            startDate=data.get("startDate", "") or "",
+            endDate=data.get("endDate", "") or "",
             highlights=data.get("highlights", []) or []
+        )
+
+class Language(BaseModel):
+    name: str = ""
+    proficiency: str = ""
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            name=data.get("name", "") or "",
+            proficiency=data.get("proficiency", "") or ""
         )
 
 class ParsedResume(BaseModel):
@@ -100,7 +111,7 @@ class ParsedResume(BaseModel):
     education: List[Education] = []
     experience: List[Experience] = []
     skills: List[str] = []
-    languages: List[str] = []
+    languages: List[Language] = []
     certifications: List[str] = []
     summary: str = ""
 
@@ -111,7 +122,7 @@ class ParsedResume(BaseModel):
             education=[Education.from_dict(edu) for edu in data.get("education", [])],
             experience=[Experience.from_dict(exp) for exp in data.get("experience", [])],
             skills=data.get("skills", []) or [],
-            languages=data.get("languages", []) or [],
+            languages=[Language.from_dict(lang) for lang in data.get("languages", [])],
             certifications=data.get("certifications", []) or [],
             summary=data.get("summary", "") or ""
         )
@@ -136,10 +147,11 @@ async def extract_text(file: UploadFile) -> str:
         logger.error(f"Text extraction error: {str(e)}")
         raise HTTPException(500, f"Text extraction failed: {str(e)}")
 
-async def fast_parse_with_gemini(text: str) -> ParsedResume:
+async def fast_parse_with_gemini(text: str) -> dict:
     """Single optimized API call with language extraction"""
     prompt = f"""
-    Extract resume data in this JSON format from the text below:
+    Extract resume data in this JSON format from the text below. For dates, use YYYY-MM-DD format or 'Present' for current positions:
+
     {{
         "personal_info": {{
             "name": "Full Name",
@@ -147,39 +159,42 @@ async def fast_parse_with_gemini(text: str) -> ParsedResume:
             "phone": "+1234567890",
             "linkedin": "profile-url",
             "github": "profile-url",
-            "location": "City, Country"
+            "location": "City, Country",
+            "summary": "A brief professional summary highlighting key qualifications and career objectives"
         }},
-        "education": [
+        "skills": [
+            "Skill 1",
+            "Skill 2"
+        ],
+        "languages": [
             {{
-                "institution": "University Name", 
-                "degree": "Degree Name",
-                "dates": "MM/YYYY - MM/YYYY"
+                "name": "Language Name",
+                "proficiency": "Native/Fluent/Professional/Intermediate/Basic"
             }}
         ],
         "experience": [
             {{
                 "position": "Job Title",
                 "company": "Company Name",
-                "dates": "MM/YYYY - MM/YYYY",
-                "highlights": ["Achievement 1", "Achievement 2"]
+                "startDate": "YYYY-MM-DD",
+                "endDate": "YYYY-MM-DD or Present",
+                "highlights": [
+                    "Achievement 1",
+                    "Achievement 2"
+                ]
             }}
         ],
-        "skills": ["Skill 1", "Skill 2"],
-        "languages": ["Language 1", "Language 2"],
-        "certifications": ["Cert 1", "Cert 2"],
-        "summary": "Brief professional summary"
+        "education": [
+            {{
+                "institution": "University Name",
+                "degree": "Degree Name",
+                "startDate": "YYYY-MM-DD",
+                "endDate": "YYYY-MM-DD or Present"
+            }}
+        ]
     }}
 
-    Rules:
-    1. Keep responses under 1024 tokens
-    2. Prioritize speed over completeness
-    3. Use exact values from resume
-    4. Include languages section
-    5. Return ONLY the JSON, no additional text or explanation
-    6. If a field is not found, use an empty string or empty list as appropriate
-    7. Never return null values
-
-    Resume Text:
+    Text to parse:
     {text}
     """
     
@@ -199,7 +214,7 @@ async def fast_parse_with_gemini(text: str) -> ParsedResume:
         
         # Parse JSON and create ParsedResume object with data cleaning
         data = json.loads(json_str)
-        return ParsedResume.from_dict(data)
+        return ParsedResume.from_dict(data).dict()
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error: {str(e)}\nResponse text: {response.text}")
         raise HTTPException(500, f"Failed to parse AI response: {str(e)}")
@@ -207,27 +222,36 @@ async def fast_parse_with_gemini(text: str) -> ParsedResume:
         logger.error(f"AI processing error: {str(e)}")
         raise HTTPException(500, f"AI processing failed: {str(e)}")
 
-@app.post("/parse-resume", response_model=ParsedResume)
+@app.post("/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
-    """Ultra-fast parsing endpoint"""
     try:
-        # Extract text from file
-        text = await extract_text(file)
-        logger.info(f"Extracted text length: {len(text)}")
+        logger.info(f"Received file: {file.filename}, content_type: {file.content_type}")
         
-        if not text.strip():
-            raise HTTPException(400, "No text could be extracted from the file")
+        # Validate file type
+        if not file.content_type in ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}. Please upload a PDF or DOCX file.")
+        
+        # Extract text from the file
+        try:
+            text = await extract_text(file)
+            logger.info(f"Successfully extracted text from {file.filename}")
+        except Exception as e:
+            logger.error(f"Error extracting text: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error extracting text from file: {str(e)}")
+        
+        # Parse the text with Gemini
+        try:
+            parsed_data = await fast_parse_with_gemini(text)
+            logger.info(f"Successfully parsed resume data for {file.filename}")
+            return parsed_data
+        except Exception as e:
+            logger.error(f"Error parsing with Gemini: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error parsing resume with AI: {str(e)}")
             
-        # Parse with Gemini
-        result = await fast_parse_with_gemini(text)
-        return result
-        
-    except HTTPException as he:
-        raise he
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(500, f"Processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
