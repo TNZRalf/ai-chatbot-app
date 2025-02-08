@@ -1,0 +1,25 @@
+{
+  "name": "resume-parser-backend",
+  "version": "1.0.0",
+  "description": "Backend server for Resume Parser application",
+  "main": "server.js",
+  "scripts": {
+    "start": "set PORT=3001 && node server.js",
+    "dev": "set PORT=3001 && nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^12.7.0",
+    "form-data": "^4.0.1",
+    "helmet": "^8.0.0",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

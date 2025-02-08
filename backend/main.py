@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from pydantic import BaseModel, Field
 import google.generativeai as genai
 import pdfplumber
@@ -10,6 +10,7 @@ import re
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import httpx
 
 # Configure logger
 logger = logging.getLogger("resume_parser")
@@ -221,9 +222,12 @@ async def fast_parse_with_gemini(text: str) -> dict:
         raise HTTPException(500, f"Failed to parse AI response: {str(e)}")
 
 @app.post("/parse-resume", response_model=ParsedResume)
-async def parse_resume(file: UploadFile = File(...)):
-    """Ultra-fast parsing endpoint"""
+async def parse_resume(file: UploadFile = File(...), firebase_uid: str = Header(None)):
+    """Ultra-fast parsing endpoint with PostgreSQL storage"""
     try:
+        if not firebase_uid:
+            raise HTTPException(401, "Unauthorized: Missing Firebase UID")
+            
         # Extract text from file
         text = await extract_text(file)
         logger.info(f"Extracted text length: {len(text)}")
@@ -233,6 +237,22 @@ async def parse_resume(file: UploadFile = File(...)):
             
         # Parse with Gemini
         result = await fast_parse_with_gemini(text)
+        
+        # Store in PostgreSQL using Node.js service
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://localhost:3000/api/cv/save",
+                    json={
+                        "firebase_uid": firebase_uid,
+                        "cv_data": result
+                    }
+                )
+                response.raise_for_status()
+        except Exception as e:
+            logger.error(f"Failed to store CV in PostgreSQL: {str(e)}")
+            # Continue anyway to return parsed data to user
+            
         return result
         
     except HTTPException as he:

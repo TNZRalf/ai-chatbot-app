@@ -7,13 +7,21 @@ import io
 import logging
 import json
 import re
+import os
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+from dotenv import load_dotenv
 
-# Configure logger
+# Load environment variables
+load_dotenv()
+
+# Configure logger with more verbose output
 logger = logging.getLogger("resume_parser")
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -21,23 +29,26 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app's URL
-    allow_credentials=False,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize Gemini
-GEMINI_API_KEY = "AIzaSyDlQ3xWeUXEXLBJPpnpCxnckGD_yzXg8s4"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set")
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Use faster model and optimize configuration
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-pro",
     generation_config={
         "temperature": 0.2,
         "top_p": 0.7,
-        "max_output_tokens": 1024
+        "max_output_tokens": 2048
     }
 )
 
@@ -222,6 +233,16 @@ async def fast_parse_with_gemini(text: str) -> dict:
         logger.error(f"AI processing error: {str(e)}")
         raise HTTPException(500, f"AI processing failed: {str(e)}")
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("FastAPI server starting up...")
+    logger.info("CORS configuration: %s", app.middleware_stack.__dict__)
+
+@app.get("/health")
+async def health_check():
+    logger.info("Health check endpoint called")
+    return {"status": "healthy"}
+
 @app.post("/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
     try:
@@ -254,4 +275,4 @@ async def parse_resume(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
