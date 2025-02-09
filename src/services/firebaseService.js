@@ -17,70 +17,75 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage } from '../config/firebase';
 
 // User related operations
-export const createUserProfile = async (userId, userData) => {
+export const createUserProfile = async (uid, userData) => {
   try {
-    if (!userId || !userData) {
-      throw new Error('Invalid user data');
-    }
-
-    const trimmedData = {
-      firstName: userData.firstName?.trim(),
-      lastName: userData.lastName?.trim(),
-      email: userData.email?.trim(),
-      displayName: userData.displayName || `${userData.firstName?.trim()} ${userData.lastName?.trim()}`,
-      photoURL: userData.photoURL || null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-      isOnline: true,
-      preferences: userData.preferences || {
-        theme: 'light',
-        notifications: true,
-        language: 'en',
-      }
-    };
-
-    const userRef = doc(db, 'users', userId);
-    await setDoc(userRef, trimmedData, { merge: true });
-
-    return { success: true, data: trimmedData };
-  } catch (error) {
-    console.error('Error creating user profile:', error);
-    throw error;
-  }
-};
-
-export const getUserProfile = async (userId) => {
-  try {
-    const userRef = doc(db, 'users', userId);
+    console.log('Creating user profile for:', uid);
+    const userRef = doc(db, 'users', uid);
+    
+    // Check if user document already exists
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
-      return { ...userSnap.data(), id: userSnap.id };
+      console.log('User profile already exists, updating...');
+      await updateDoc(userRef, {
+        ...userData,
+        updatedAt: new Date()
+      });
+    } else {
+      console.log('Creating new user profile...');
+      await setDoc(userRef, {
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
     }
-    return null;
+    console.log('User profile operation successful');
+    return true;
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    console.error('Error in createUserProfile:', error);
     throw error;
   }
 };
 
-export const updateUserProfile = async (userId, updates) => {
+export const updateUserProfile = async (uid, updates) => {
   try {
-    const userRef = doc(db, 'users', userId);
+    console.log('Updating user profile for:', uid);
+    const userRef = doc(db, 'users', uid);
+    
+    // Check if user exists before updating
     const userSnap = await getDoc(userRef);
-    
     if (!userSnap.exists()) {
-      // If user doesn't exist, create profile
-      return createUserProfile(userId, updates);
+      console.warn('User document does not exist, creating new profile...');
+      return await createUserProfile(uid, updates);
     }
-    
+
     await updateDoc(userRef, {
       ...updates,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date()
     });
-    return { success: true };
+    
+    console.log('User profile updated successfully');
+    return true;
   } catch (error) {
-    console.error('Error updating user profile:', error);
+    console.error('Error in updateUserProfile:', error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (uid) => {
+  try {
+    console.log('Fetching user profile for:', uid);
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      console.log('User profile found');
+      return userSnap.data();
+    } else {
+      console.warn('No user profile found');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error in getUserProfile:', error);
     throw error;
   }
 };

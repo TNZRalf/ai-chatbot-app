@@ -10,7 +10,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { createUserProfile, updateUserProfile } from '../services/firebaseService';
+import { createUserProfile, updateUserProfile, getUserProfile } from '../services/firebaseService';
 
 const AuthContext = createContext();
 
@@ -19,13 +19,27 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user?.email);
+      setCurrentUser(user);
+      
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      } else {
+        setUserProfile(null);
+      }
+      
       setLoading(false);
     });
 
@@ -35,22 +49,26 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, userData) => {
     try {
       setError(null);
+      console.log('Creating new user account...');
+      
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update user profile with display name
       const displayName = `${userData.firstName} ${userData.lastName}`;
       await updateProfile(user, { displayName });
       
-      // Create user profile in Firestore
+      console.log('Creating user profile...');
       await createUserProfile(user.uid, {
         ...userData,
         displayName,
+        email: user.email,
         lastLogin: new Date()
       });
 
-      setUser(user);
+      setCurrentUser(user);
       return { user };
     } catch (error) {
+      console.error('Signup error:', error);
       setError(error.message);
       throw error;
     }
@@ -59,7 +77,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
+      console.log('Attempting login with email:', email);
+      
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Login successful for user:', result.user.email);
       
       // Update last login time
       await updateUserProfile(result.user.uid, {
@@ -68,6 +89,10 @@ export const AuthProvider = ({ children }) => {
 
       return result;
     } catch (error) {
+      console.error('Login error:', {
+        code: error.code,
+        message: error.message
+      });
       setError(error.message);
       throw error;
     }
@@ -91,6 +116,7 @@ export const AuthProvider = ({ children }) => {
 
       return result;
     } catch (error) {
+      console.error('Google login error:', error);
       setError(error.message);
       throw error;
     }
@@ -114,6 +140,7 @@ export const AuthProvider = ({ children }) => {
 
       return result;
     } catch (error) {
+      console.error('Facebook login error:', error);
       setError(error.message);
       throw error;
     }
@@ -121,17 +148,19 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      setError(null);
       await signOut(auth);
-      setUser(null);
+      setCurrentUser(null);
+      setUserProfile(null);
     } catch (error) {
+      console.error('Logout error:', error);
       setError(error.message);
       throw error;
     }
   };
 
   const value = {
-    user,
+    currentUser,
+    userProfile,
     loading,
     error,
     signup,

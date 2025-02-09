@@ -20,14 +20,18 @@ import {
   CalendarMonth as CalendarIcon,
   CheckBox as TodoIcon,
   Palette as PaletteIcon,
+  Home as HomeIcon,
+  Chat as ChatIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { SidebarContext } from '../contexts/SidebarContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {
   const context = useContext(SidebarContext);
   const { isDarkMode } = useTheme();
+  const location = useLocation();
   
   useEffect(() => {
     const handleResize = () => {
@@ -60,8 +64,18 @@ const Sidebar = () => {
   const { sidebarOpen, setSidebarOpen } = context;
 
   const menuItems = [
-    { text: 'CV/Resume', icon: <CalendarIcon />, description: 'add / edit your resume', path: '/resume-parser' },
-    { text: 'To-Do List', icon: <TodoIcon />, description: 'Intelligent task organization and tracking',path: '/to-do-list'},
+    { 
+      text: 'CV/Resume', 
+      icon: <CalendarIcon />, 
+      description: 'add / edit your resume', 
+      path: '/resume-parser' 
+    },
+    { 
+      text: 'Applications automater', 
+      icon: <TodoIcon />, 
+      description: 'Chat with AI to automate your applications',
+      path: '/to-do-list'
+    },
     { 
       text: 'Settings', 
       icon: <SettingsIcon />, 
@@ -159,7 +173,7 @@ const Sidebar = () => {
           {menuItems.map((item) => (
             <React.Fragment key={item.text}>
               <ListItemButton
-                component={item.path ? Link : 'div'}
+                component={Link}
                 to={item.path}
                 sx={{
                   p: 2,

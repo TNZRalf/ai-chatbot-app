@@ -52,9 +52,9 @@ const SignIn = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, loginWithGoogle, loginWithFacebook } = useAuth();
-  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     if (location.state?.message) {
@@ -69,25 +69,43 @@ const SignIn = () => {
     }
   }, [location.state]);
 
+  // Clear error when inputs change
+  useEffect(() => {
+    setError('');
+  }, [email, password]);
+
+  const validateForm = () => {
+    if (!email) {
+      setError('Please enter your email');
+      return false;
+    }
+    if (!password) {
+      setError('Please enter your password');
+      return false;
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    return true;
+  };
+
   const handleSignIn = async (e) => {
     e.preventDefault();
     
-    // Validate form
-    if (!email.trim()) {
-      setError('Please enter your email address');
+    if (!validateForm()) {
       return;
     }
 
-    if (!password) {
-      setError('Please enter your password');
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-    
     try {
+      setError('');
+      setLoading(true);
+      console.log('Attempting to sign in with:', { email });
+      
       const { user } = await login(email, password);
+      console.log('Sign-in successful:', user.email);
       
       // Update user's last login time
       await updateUserProfile(user.uid, {
@@ -97,32 +115,31 @@ const SignIn = () => {
         }
       });
 
-      // Redirect to the page they came from or to home
-      const from = location.state?.from?.pathname || '/home';
-      navigate(from, { replace: true });
-    } catch (err) {
-      console.error('Sign-in error:', err);
-      switch (err.code) {
+      // Get the redirect path from location state or default to home
+      const redirectPath = location.state?.from?.pathname || '/home';
+      navigate(redirectPath, { replace: true });
+    } catch (error) {
+      console.error('Sign-in error:', error);
+      
+      // Provide user-friendly error messages
+      switch (error.code) {
         case 'auth/invalid-email':
-          setError('Please enter a valid email address');
-          break;
-        case 'auth/user-disabled':
-          setError('This account has been disabled. Please contact support');
+          setError('Invalid email address. Please try again.');
           break;
         case 'auth/user-not-found':
-          setError('No account found with this email. Please sign up first');
+          setError('No account found with this email. Please sign up first.');
           break;
         case 'auth/wrong-password':
-          setError('Incorrect password. Please try again');
+          setError('Incorrect password. Please try again.');
           break;
         case 'auth/too-many-requests':
-          setError('Too many failed attempts. Please try again later');
+          setError('Too many failed attempts. Please try again later.');
           break;
-        case 'auth/network-request-failed':
-          setError('Network error. Please check your internet connection');
+        case 'auth/user-disabled':
+          setError('This account has been disabled. Please contact support.');
           break;
         default:
-          setError('Failed to sign in. ' + (err.message || 'Please try again'));
+          setError('Failed to sign in. Please try again.');
       }
     } finally {
       setLoading(false);

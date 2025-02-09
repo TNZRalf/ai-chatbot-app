@@ -9,6 +9,8 @@ import SignUp from './components/SignUp';
 import Home from './components/Home';
 import InterfaceSettings from './components/InterfaceSettings';
 import ResumeParser from './components/ResumeParser';
+import CVEditor from './components/CVEditor';
+import TodoList from './components/TodoList';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -16,14 +18,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Wrapper component to handle authenticated routes
 const AuthenticatedRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
+  const { currentUser } = useAuth();
+  return currentUser ? children : <Navigate to="/login" />;
 };
 
 // Wrapper component to handle public routes
 const PublicRoute = ({ children }) => {
-  const { user } = useAuth();
-  return !user ? children : <Navigate to="/home" />;
+  const { currentUser } = useAuth();
+  return !currentUser ? children : <Navigate to="/home" />;
 };
 
 function App() {
@@ -41,6 +43,7 @@ function App() {
           >
             <SidebarProvider>
               <Routes>
+                {/* Public Routes */}
                 <Route
                   path="/"
                   element={
@@ -66,40 +69,59 @@ function App() {
                   }
                 />
                 <Route path="/signin" element={<Navigate to="/login" replace />} />
+
+                {/* Protected Routes */}
                 <Route
                   path="/home"
                   element={
-                    <ProtectedRoute>
+                    <AuthenticatedRoute>
                       <Home />
-                    </ProtectedRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
                   path="/settings/interface"
                   element={
-                    <ProtectedRoute>
+                    <AuthenticatedRoute>
                       <InterfaceSettings />
-                    </ProtectedRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
                   path="/settings"
                   element={
-                    <ProtectedRoute>
+                    <AuthenticatedRoute>
                       <InterfaceSettings />
-                    </ProtectedRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
                   path="/resume-parser"
                   element={
-                    <ProtectedRoute>
-                      <SidebarProvider>
-                        <ResumeParser />
-                      </SidebarProvider>
-                    </ProtectedRoute>
+                    <AuthenticatedRoute>
+                      <ResumeParser />
+                    </AuthenticatedRoute>
                   }
                 />
+                <Route
+                  path="/cv/edit"
+                  element={
+                    <AuthenticatedRoute>
+                      <CVEditor />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
+                  path="/to-do-list"
+                  element={
+                    <AuthenticatedRoute>
+                      <TodoList />
+                    </AuthenticatedRoute>
+                  }
+                />
+
+                {/* Fallback Route */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </SidebarProvider>
           </Box>

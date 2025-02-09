@@ -7,20 +7,42 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors({
+// Import routes
+const cvRoutes = require('./backend/routes/cvRoutes');
+
+// Configure CORS
+const corsOptions = {
   origin: process.env.REACT_APP_CLIENT_URL || 'http://localhost:3000',
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  if (req.file) {
+    console.log('File in request:', {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+  }
+  next();
+});
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
-// app.use('/auth', authRoutes);
+app.use('/api/cv', cvRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -37,10 +59,18 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Basic error handling
+// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+  console.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    status: err.status || 500
+  });
+  
+  res.status(err.status || 500).json({
+    error: err.message || 'Something broke!',
+    status: err.status || 500
+  });
 });
 
 // Start server
