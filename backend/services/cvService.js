@@ -11,10 +11,19 @@ const pool = new Pool({
   port: process.env.POSTGRES_PORT,
 });
 
+const sanitizeValue = (value) => {
+  if (!value) return '';
+  // Escape single quotes and remove any potential SQL injection characters
+  return value.toString().replace(/'/g, "''").replace(/[;\\]/g, '');
+};
+
 const createOrUpdateProfile = async (firebaseUid, data) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    console.log('Creating/updating profile for user:', firebaseUid);
+    console.log('Data received:', JSON.stringify(data, null, 2));
 
     // Insert or update profile
     const profileResult = await client.query(
@@ -27,8 +36,9 @@ const createOrUpdateProfile = async (firebaseUid, data) => {
     );
 
     const profileId = profileResult.rows[0].profile_id;
+    console.log('Profile ID:', profileId);
 
-    // Insert or update personal info
+    // Insert or update personal info using parameterized query
     await client.query(
       `INSERT INTO personal_info (profile_id, full_name, email, phone, linkedin_url, github_url, location)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -52,43 +62,86 @@ const createOrUpdateProfile = async (firebaseUid, data) => {
       ]
     );
 
-    // Delete existing education entries and insert new ones
+    // Delete existing education entries
     await client.query('DELETE FROM education WHERE profile_id = $1', [profileId]);
+    
+    // Insert new education entries using parameterized queries
     if (data.education && data.education.length > 0) {
-      const educationValues = data.education.map(edu => 
-        `(${profileId}, '${edu.institution}', '${edu.degree}', '${edu.startDate}', '${edu.endDate}')`
-      ).join(',');
-      await client.query(
-        `INSERT INTO education (profile_id, institution, degree, start_date, end_date)
-         VALUES ${educationValues}`
-      );
+      for (const edu of data.education) {
+        await client.query(
+          `INSERT INTO education (profile_id, institution, degree, start_date, end_date)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            profileId,
+            edu.institution || '',
+            edu.degree || '',
+            edu.startDate || null,
+            edu.endDate || null
+          ]
+        );
+      }
     }
 
-    // Delete existing experience entries and insert new ones
+    // Delete existing experience entries
     await client.query('DELETE FROM experience WHERE profile_id = $1', [profileId]);
+    
+    // Insert new experience entries using parameterized queries
     if (data.experience && data.experience.length > 0) {
-      const experienceValues = data.experience.map(exp => 
-        `(${profileId}, '${exp.company}', '${exp.position}', '${exp.startDate}', '${exp.endDate}', '${exp.description || ''}')`
-      ).join(',');
-      await client.query(
-        `INSERT INTO experience (profile_id, company, position, start_date, end_date, description)
-         VALUES ${experienceValues}`
-      );
+      for (const exp of data.experience) {
+        await client.query(
+          `INSERT INTO experience (profile_id, company, position, start_date, end_date, description)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            profileId,
+            exp.company || '',
+            exp.position || '',
+            exp.startDate || null,
+            exp.endDate || null,
+            exp.description || ''
+          ]
+        );
+      }
     }
 
-    // Delete existing skills and insert new ones
+    // Delete existing skills
     await client.query('DELETE FROM skills WHERE profile_id = $1', [profileId]);
+    
+    // Insert new skills using parameterized queries
     if (data.skills && data.skills.length > 0) {
-      const skillValues = data.skills.map(skill => 
-        `(${profileId}, '${skill.name}', '${skill.category || 'General'}', '${skill.proficiency || 'Intermediate'}')`
-      ).join(',');
-      await client.query(
-        `INSERT INTO skills (profile_id, name, category, proficiency_level)
-         VALUES ${skillValues}`
-      );
+      for (const skill of data.skills) {
+        await client.query(
+          `INSERT INTO skills (profile_id, name, category, proficiency_level)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            profileId,
+            typeof skill === 'string' ? skill : skill.name || '',
+            'General',
+            'Intermediate'
+          ]
+        );
+      }
+    }
+
+    // Delete existing languages
+    await client.query('DELETE FROM languages WHERE profile_id = $1', [profileId]);
+    
+    // Insert new languages using parameterized queries
+    if (data.languages && data.languages.length > 0) {
+      for (const lang of data.languages) {
+        await client.query(
+          `INSERT INTO languages (profile_id, name, proficiency)
+           VALUES ($1, $2, $3)`,
+          [
+            profileId,
+            typeof lang === 'string' ? lang : lang.name || '',
+            typeof lang === 'string' ? 'Intermediate' : lang.proficiency || 'Intermediate'
+          ]
+        );
+      }
     }
 
     await client.query('COMMIT');
+    console.log('Successfully saved profile data');
     return { success: true, profileId };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -103,19 +156,28 @@ const getProfileByFirebaseUid = async (firebaseUid) => {
   const client = await pool.connect();
   try {
     // Get profile and personal info
-    const profileResult = await client.query(
-      `SELECT p.*, pi.*
+    const result = await client.query(
+      `SELECT 
+        p.profile_id,
+        p.firebase_uid,
+        p.summary,
+        pi.full_name,
+        pi.email,
+        pi.phone,
+        pi.linkedin_url,
+        pi.github_url,
+        pi.location
        FROM profiles p
        LEFT JOIN personal_info pi ON p.profile_id = pi.profile_id
        WHERE p.firebase_uid = $1`,
       [firebaseUid]
     );
 
-    if (profileResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    const profile = profileResult.rows[0];
+    const profile = result.rows[0];
 
     // Get education
     const educationResult = await client.query(
@@ -135,19 +197,29 @@ const getProfileByFirebaseUid = async (firebaseUid) => {
       [profile.profile_id]
     );
 
+    // Get languages
+    const languagesResult = await client.query(
+      'SELECT * FROM languages WHERE profile_id = $1',
+      [profile.profile_id]
+    );
+
     return {
+      summary: profile.summary,
       personalInfo: {
         name: profile.full_name,
         email: profile.email,
         phone: profile.phone,
         linkedin: profile.linkedin_url,
         github: profile.github_url,
-        location: profile.location,
-        summary: profile.summary
+        location: profile.location
       },
       education: educationResult.rows,
       experience: experienceResult.rows,
-      skills: skillsResult.rows
+      skills: skillsResult.rows.map(s => s.name),
+      languages: languagesResult.rows.map(l => ({
+        name: l.name,
+        proficiency: l.proficiency
+      }))
     };
   } catch (error) {
     console.error('Error in getProfileByFirebaseUid:', error);

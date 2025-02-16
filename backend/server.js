@@ -34,12 +34,14 @@ const db = new Pool({
 const app = express();
 
 // Security middleware
-app.use(helmet()); // Adds various HTTP headers for security
+app.use(helmet({
+    contentSecurityPolicy: false // Disable CSP for development
+}));
 app.disable('x-powered-by'); // Hide Express
 
 // CORS configuration with strict options
 const corsOptions = {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'http://localhost:3002'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Length', 'Content-Type'],
@@ -73,13 +75,45 @@ app.use((req, res, next) => {
 // Apply rate limiting to all routes
 app.use(authLimiter);
 
-// Protected routes
-app.use('/api/cv', auth, cvRoutes);
-
 // Health check endpoint (public)
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date() });
+    res.json({ status: 'healthy' });
 });
+
+// CV routes
+app.use('/cv', cvRoutes);
+
+// User authentication routes
+app.post('/auth/register', authLimiter, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const userRecord = await userService.createUser(email, password);
+        res.status(201).json({ uid: userRecord.uid });
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/auth/login', authLimiter, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const userRecord = await userService.loginUser(email, password);
+        res.json({ uid: userRecord.uid });
+    } catch (error) {
+        console.error('Error logging in:', error);
+        res.status(401).json({ error: error.message });
+    }
+});
+
+// Protected routes
+app.use('/api', auth, (req, res, next) => {
+    // All routes under /api require authentication
+    next();
+});
+
+// Protected routes
+app.use('/api/cv', cvRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {

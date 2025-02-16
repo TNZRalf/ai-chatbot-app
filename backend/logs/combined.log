@@ -1,0 +1,5 @@
+{"level":"info","message":"Database connected successfully","timestamp":"2025-02-11T22:51:04.449Z"}
+{"level":"info","message":"Database connected successfully","timestamp":"2025-02-13T11:38:37.780Z"}
+{"level":"info","message":"Database connected successfully","timestamp":"2025-02-13T11:39:22.343Z"}
+{"code":"42703","file":"tablecmds.c","length":144,"level":"error","line":"11870","message":"Error setting up database: column \"profile_id\" referenced in foreign key constraint does not exist","name":"error","routine":"transformColumnNameList","severity":"ERROR","stack":"error: column \"profile_id\" referenced in foreign key constraint does not exist\n    at C:\\Users\\Zakaria\\CascadeProjects\\ai-chatbot-app\\backend\\node_modules\\pg\\lib\\client.js:535:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async setupTables (C:\\Users\\Zakaria\\CascadeProjects\\ai-chatbot-app\\backend\\scripts\\setupDatabase.js:78:5)","timestamp":"2025-02-13T11:46:21.544Z"}
+{"level":"info","message":"Database connected successfully","timestamp":"2025-02-13T11:52:30.442Z"}

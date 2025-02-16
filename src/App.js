@@ -14,6 +14,7 @@ import TodoList from './components/TodoList';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { CVProvider } from './contexts/CVContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Wrapper component to handle authenticated routes
@@ -31,102 +32,104 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <CssBaseline />
-          <Box
-            sx={{
-              bgcolor: 'background.default',
-              minHeight: '100vh',
-              width: '100%',
-            }}
-          >
-            <SidebarProvider>
-              <Routes>
-                {/* Public Routes */}
-                <Route
-                  path="/"
-                  element={
-                    <PublicRoute>
-                      <Landing />
-                    </PublicRoute>
-                  }
-                />
-                <Route
-                  path="/login"
-                  element={
-                    <PublicRoute>
-                      <SignIn />
-                    </PublicRoute>
-                  }
-                />
-                <Route
-                  path="/signup"
-                  element={
-                    <PublicRoute>
-                      <SignUp />
-                    </PublicRoute>
-                  }
-                />
-                <Route path="/signin" element={<Navigate to="/login" replace />} />
+      <CVProvider>
+        <ThemeProvider>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <CssBaseline />
+            <Box
+              sx={{
+                bgcolor: 'background.default',
+                minHeight: '100vh',
+                width: '100%',
+              }}
+            >
+              <SidebarProvider>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route
+                    path="/"
+                    element={
+                      <PublicRoute>
+                        <Landing />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicRoute>
+                        <SignIn />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/signup"
+                    element={
+                      <PublicRoute>
+                        <SignUp />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route path="/signin" element={<Navigate to="/login" replace />} />
 
-                {/* Protected Routes */}
-                <Route
-                  path="/home"
-                  element={
-                    <AuthenticatedRoute>
-                      <Home />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/settings/interface"
-                  element={
-                    <AuthenticatedRoute>
-                      <InterfaceSettings />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <AuthenticatedRoute>
-                      <InterfaceSettings />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/resume-parser"
-                  element={
-                    <AuthenticatedRoute>
-                      <ResumeParser />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/cv/edit"
-                  element={
-                    <AuthenticatedRoute>
-                      <CVEditor />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/to-do-list"
-                  element={
-                    <AuthenticatedRoute>
-                      <TodoList />
-                    </AuthenticatedRoute>
-                  }
-                />
+                  {/* Protected Routes */}
+                  <Route
+                    path="/home"
+                    element={
+                      <AuthenticatedRoute>
+                        <Home />
+                      </AuthenticatedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings/interface"
+                    element={
+                      <AuthenticatedRoute>
+                        <InterfaceSettings />
+                      </AuthenticatedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <AuthenticatedRoute>
+                        <InterfaceSettings />
+                      </AuthenticatedRoute>
+                    }
+                  />
+                  <Route
+                    path="/resume-parser"
+                    element={
+                      <AuthenticatedRoute>
+                        <ResumeParser />
+                      </AuthenticatedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cv/edit"
+                    element={
+                      <AuthenticatedRoute>
+                        <CVEditor />
+                      </AuthenticatedRoute>
+                    }
+                  />
+                  <Route
+                    path="/to-do-list"
+                    element={
+                      <AuthenticatedRoute>
+                        <TodoList />
+                      </AuthenticatedRoute>
+                    }
+                  />
 
-                {/* Fallback Route */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </SidebarProvider>
-          </Box>
-        </LocalizationProvider>
-      </ThemeProvider>
+                  {/* Fallback Route */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </SidebarProvider>
+            </Box>
+          </LocalizationProvider>
+        </ThemeProvider>
+      </CVProvider>
     </AuthProvider>
   );
 }

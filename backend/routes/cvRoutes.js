@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { authNoEmailVerification } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const cvService = require('../services/cvService');
 
 // Ensure uploads directory exists
@@ -47,8 +47,59 @@ const upload = multer({
 // Helper function to handle file upload errors
 const handleUpload = upload.single('file');
 
+// CV Profile endpoints
+router.post('/profile', auth, async (req, res) => {
+    try {
+        const { firebase_uid, ...data } = req.body;
+        
+        // Verify user is updating their own profile
+        if (firebase_uid !== req.user.uid) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: 'You can only update your own profile'
+            });
+        }
+
+        const result = await cvService.createOrUpdateProfile(firebase_uid, data);
+        res.json(result);
+    } catch (error) {
+        console.error('Error saving CV profile:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: error.message
+        });
+    }
+});
+
+router.get('/profile/:firebaseUid', auth, async (req, res) => {
+    try {
+        // Verify user is accessing their own profile
+        if (req.params.firebaseUid !== req.user.uid) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: 'You can only access your own profile'
+            });
+        }
+
+        const profile = await cvService.getProfileByFirebaseUid(req.params.firebaseUid);
+        if (!profile) {
+            return res.status(404).json({
+                error: 'Not Found',
+                message: 'Profile not found'
+            });
+        }
+        res.json(profile);
+    } catch (error) {
+        console.error('Error fetching CV profile:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: error.message
+        });
+    }
+});
+
 // Parse CV endpoint
-router.post('/parse', authNoEmailVerification, (req, res) => {
+router.post('/parse', auth, (req, res) => {
     handleUpload(req, res, async (err) => {
         try {
             // Handle multer errors
@@ -122,7 +173,7 @@ router.post('/parse', authNoEmailVerification, (req, res) => {
 });
 
 // Get parse status
-router.get('/status/:id', authNoEmailVerification, async (req, res) => {
+router.get('/status/:id', auth, async (req, res) => {
     try {
         const status = await cvService.getParseStatus(req.params.id);
         if (!status) {
@@ -141,7 +192,7 @@ router.get('/status/:id', authNoEmailVerification, async (req, res) => {
 });
 
 // Get all user's resumes
-router.get('/resumes', authNoEmailVerification, async (req, res) => {
+router.get('/resumes', auth, async (req, res) => {
     try {
         const resumes = await cvService.getUserResumes(req.user.id);
         if (!resumes || resumes.length === 0) {
@@ -158,7 +209,7 @@ router.get('/resumes', authNoEmailVerification, async (req, res) => {
 });
 
 // Get user's CV profile
-router.get('/profile', authNoEmailVerification, async (req, res) => {
+router.get('/profile', auth, async (req, res) => {
     try {
         const profile = await cvService.getProfileByFirebaseUid(req.user.uid);
         if (!profile) {
@@ -177,7 +228,7 @@ router.get('/profile', authNoEmailVerification, async (req, res) => {
 });
 
 // Delete a resume
-router.delete('/resume/:id', authNoEmailVerification, async (req, res) => {
+router.delete('/resume/:id', auth, async (req, res) => {
     try {
         const result = await cvService.deleteResume(req.params.id, req.user.id);
         if (!result) {

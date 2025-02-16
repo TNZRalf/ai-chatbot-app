@@ -57,12 +57,11 @@ const SignUp = () => {
     setLoading(true);
 
     try {
+      const displayName = `${firstName.trim()} ${lastName.trim()}`;
+      
       // Create user with email and password
-      const { user } = await signup(email, password, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        displayName: `${firstName.trim()} ${lastName.trim()}`
+      const { user } = await signup(email.trim(), password, {
+        displayName: displayName
       });
 
       // Create user profile
@@ -70,7 +69,7 @@ const SignUp = () => {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        displayName: `${firstName.trim()} ${lastName.trim()}`,
+        displayName: displayName,
         createdAt: new Date(),
         lastLogin: new Date(),
         photoURL: null,
@@ -99,25 +98,7 @@ const SignUp = () => {
 
     } catch (err) {
       console.error('Sign-up error:', err);
-      switch (err.code) {
-        case 'auth/email-already-in-use':
-          setError('An account with this email already exists');
-          break;
-        case 'auth/invalid-email':
-          setError('Please enter a valid email address');
-          break;
-        case 'auth/operation-not-allowed':
-          setError('Email/password accounts are not enabled. Please contact support');
-          break;
-        case 'auth/weak-password':
-          setError('Password is too weak. Please choose a stronger password');
-          break;
-        case 'auth/network-request-failed':
-          setError('Network error. Please check your internet connection');
-          break;
-        default:
-          setError('Failed to create account. ' + (err.message || 'Please try again'));
-      }
+      setError(err.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
